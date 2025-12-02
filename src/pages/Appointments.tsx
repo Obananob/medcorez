@@ -109,8 +109,9 @@ const Appointments = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("staff")
-        .select("id, first_name, last_name")
+        .select("id, first_name, last_name, user_id")
         .eq("role", "doctor")
+        .not("user_id", "is", null)
         .order("first_name");
       if (error) throw error;
       return data || [];
@@ -128,12 +129,16 @@ const Appointments = () => {
       const appointmentDate = new Date(appointmentData.date!);
       const [hours, minutes] = appointmentData.time.split(":");
       appointmentDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Get the profile id (user_id) for the selected doctor
+      const selectedDoctor = doctors?.find(d => d.id === appointmentData.doctor_id);
+      const doctorProfileId = selectedDoctor?.user_id || null;
       
       const { data, error } = await supabase
         .from("appointments")
         .insert({
           patient_id: appointmentData.patient_id,
-          doctor_id: appointmentData.doctor_id || null,
+          doctor_id: doctorProfileId,
           appointment_date: appointmentDate.toISOString(),
           reason_for_visit: appointmentData.reason_for_visit,
           status: "scheduled",
