@@ -47,7 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Mail } from "lucide-react";
+import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { AvatarUpload } from "@/components/AvatarUpload";
@@ -74,6 +74,22 @@ interface StaffMember {
   user_id: string | null;
 }
 
+interface CreatedCredentials {
+  email: string;
+  password: string;
+  name: string;
+}
+
+// Generate random password like MedCore-X9
+const generatePassword = (): string => {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let password = "MedCore-";
+  for (let i = 0; i < 4; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
 const Staff = () => {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
@@ -81,7 +97,9 @@ const Staff = () => {
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<CreatedCredentials | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const [deleteStaff, setDeleteStaff] = useState<StaffMember | null>(null);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,13 +111,6 @@ const Staff = () => {
     email: "",
     phone: "",
     avatar_url: "",
-  });
-
-  const [inviteData, setInviteData] = useState({
-    email: "",
-    role: "",
-    first_name: "",
-    last_name: "",
   });
 
   // Fetch staff members
@@ -115,37 +126,46 @@ const Staff = () => {
     },
   });
 
-  // Add staff mutation
-  const addStaffMutation = useMutation({
+  // Create staff mutation (automated flow)
+  const createStaffMutation = useMutation({
     mutationFn: async (staffData: typeof formData) => {
       if (!profile?.organization_id) throw new Error("No organization found");
       
-      const { data, error } = await supabase
-        .from("staff")
-        .insert({
+      const password = generatePassword();
+      
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: staffData.email,
+          password,
           first_name: staffData.first_name,
           last_name: staffData.last_name,
           role: staffData.role,
-          email: staffData.email || null,
-          phone: staffData.phone || null,
-          avatar_url: staffData.avatar_url || null,
           organization_id: profile.organization_id,
-        })
-        .select()
-        .single();
-      
+        },
+      });
+
       if (error) throw error;
-      return data;
+      if (data?.error) throw new Error(data.error);
+      
+      return { 
+        ...data, 
+        credentials: { 
+          email: staffData.email, 
+          password,
+          name: `${staffData.first_name} ${staffData.last_name}`
+        } 
+      };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["staff-members"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-staff-count"] });
-      toast.success("Staff member added successfully");
       setIsAddDialogOpen(false);
+      setCreatedCredentials(data.credentials);
+      setIsCredentialsDialogOpen(true);
       resetForm();
     },
     onError: (error) => {
-      toast.error("Failed to add staff: " + error.message);
+      toast.error("Failed to create staff: " + error.message);
     },
   });
 
@@ -201,66 +221,17 @@ const Staff = () => {
     },
   });
 
-  // Invite staff mutation (creates profile with pending status)
-  const inviteStaffMutation = useMutation({
-    mutationFn: async (data: typeof inviteData) => {
-      if (!profile?.organization_id) throw new Error("No organization found");
-
-      // First create staff record
-      const { data: staffRecord, error: staffError } = await supabase
-        .from("staff")
-        .insert({
-          first_name: data.first_name,
-          last_name: data.last_name,
-          role: data.role,
-          email: data.email,
-          organization_id: profile.organization_id,
-        })
-        .select()
-        .single();
-
-      if (staffError) throw staffError;
-
-      // Send invite email using Supabase auth
-      const { error: inviteError } = await supabase.auth.signInWithOtp({
-        email: data.email,
-        options: {
-          data: {
-            first_name: data.first_name,
-            last_name: data.last_name,
-            role: data.role,
-            organization_id: profile.organization_id,
-            staff_id: staffRecord.id,
-          },
-          emailRedirectTo: `${window.location.origin}/auth`,
-        },
-      });
-
-      if (inviteError) throw inviteError;
-      return staffRecord;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff-members"] });
-      toast.success("Invitation sent successfully! They will receive an email to set up their account.");
-      setIsInviteDialogOpen(false);
-      setInviteData({ email: "", role: "", first_name: "", last_name: "" });
-    },
-    onError: (error) => {
-      toast.error("Failed to send invite: " + error.message);
-    },
-  });
-
   const resetForm = () => {
     setFormData({ first_name: "", last_name: "", role: "", email: "", phone: "", avatar_url: "" });
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.first_name || !formData.last_name || !formData.role) {
+    if (!formData.first_name || !formData.last_name || !formData.role || !formData.email) {
       toast.error("Please fill in all required fields");
       return;
     }
-    addStaffMutation.mutate(formData);
+    createStaffMutation.mutate(formData);
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
@@ -270,15 +241,6 @@ const Staff = () => {
       return;
     }
     updateStaffMutation.mutate({ id: editingStaff.id, ...formData });
-  };
-
-  const handleInviteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inviteData.email || !inviteData.role || !inviteData.first_name || !inviteData.last_name) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    inviteStaffMutation.mutate(inviteData);
   };
 
   const openEditDialog = (staff: StaffMember) => {
@@ -292,6 +254,15 @@ const Staff = () => {
       avatar_url: staff.avatar_url || "",
     });
     setIsEditDialogOpen(true);
+  };
+
+  const copyPassword = async () => {
+    if (createdCredentials?.password) {
+      await navigator.clipboard.writeText(createdCredentials.password);
+      setCopiedPassword(true);
+      toast.success("Password copied to clipboard");
+      setTimeout(() => setCopiedPassword(false), 2000);
+    }
   };
 
   const filteredStaff = staffMembers?.filter((staff) => {
@@ -324,188 +295,166 @@ const Staff = () => {
           <p className="text-muted-foreground mt-1">Manage your hospital staff members</p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
-            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Invite User
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Invite Staff Member</DialogTitle>
-                  <DialogDescription>
-                    Send an email invitation to join your organization
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleInviteSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="invite_first_name">First Name *</Label>
-                      <Input
-                        id="invite_first_name"
-                        value={inviteData.first_name}
-                        onChange={(e) => setInviteData({ ...inviteData, first_name: e.target.value })}
-                        placeholder="John"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="invite_last_name">Last Name *</Label>
-                      <Input
-                        id="invite_last_name"
-                        value={inviteData.last_name}
-                        onChange={(e) => setInviteData({ ...inviteData, last_name: e.target.value })}
-                        placeholder="Doe"
-                        required
-                      />
-                    </div>
-                  </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Staff
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Add New Staff Member
+                </DialogTitle>
+                <DialogDescription>
+                  Create a new staff account. Login credentials will be generated automatically.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddSubmit} className="space-y-4">
+                <AvatarUpload
+                  currentUrl={formData.avatar_url}
+                  onUpload={(url) => setFormData({ ...formData, avatar_url: url })}
+                  folder="staff"
+                  name={`${formData.first_name} ${formData.last_name}`}
+                />
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="invite_email">Email *</Label>
+                    <Label htmlFor="first_name">First Name *</Label>
                     <Input
-                      id="invite_email"
-                      type="email"
-                      value={inviteData.email}
-                      onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                      placeholder="doctor@hospital.com"
+                      id="first_name"
+                      value={formData.first_name}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      placeholder="John"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="invite_role">Role *</Label>
-                    <Select
-                      value={inviteData.role}
-                      onValueChange={(value) => setInviteData({ ...inviteData, role: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="last_name">Last Name *</Label>
+                    <Input
+                      id="last_name"
+                      value={formData.last_name}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      placeholder="Doe"
+                      required
+                    />
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={inviteStaffMutation.isPending}>
-                      {inviteStaffMutation.isPending ? "Sending..." : "Send Invite"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Staff
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <UserPlus className="h-5 w-5" />
-                    Add New Staff Member
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleAddSubmit} className="space-y-4">
-                  <AvatarUpload
-                    currentUrl={formData.avatar_url}
-                    onUpload={(url) => setFormData({ ...formData, avatar_url: url })}
-                    folder="staff"
-                    name={`${formData.first_name} ${formData.last_name}`}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="john.doe@hospital.com"
+                    required
                   />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name">First Name *</Label>
-                      <Input
-                        id="first_name"
-                        value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        placeholder="John"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name">Last Name *</Label>
-                      <Input
-                        id="last_name"
-                        value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        placeholder="Doe"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role *</Label>
-                    <Select
-                      value={formData.role}
-                      onValueChange={(value) => setFormData({ ...formData, role: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="john.doe@hospital.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+1 234 567 890"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={addStaffMutation.isPending}>
-                      {addStaffMutation.isPending ? "Adding..." : "Add Staff"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role *</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1 234 567 890"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createStaffMutation.isPending}>
+                    {createStaffMutation.isPending ? "Creating..." : "Add Staff"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
+      {/* Success Credentials Dialog */}
+      <Dialog open={isCredentialsDialogOpen} onOpenChange={setIsCredentialsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <Check className="h-5 w-5" />
+              Staff Member Created Successfully
+            </DialogTitle>
+            <DialogDescription>
+              Please share these credentials with {createdCredentials?.name}:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Email</Label>
+              <div className="p-3 bg-muted rounded-md font-mono text-sm">
+                {createdCredentials?.email}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Password</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 p-3 bg-muted rounded-md font-mono text-sm">
+                  {createdCredentials?.password}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyPassword}
+                >
+                  {copiedPassword ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              The staff member can use these credentials to log in. They should change their password after first login.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setIsCredentialsDialogOpen(false);
+              setCreatedCredentials(null);
+            }}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search staff..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
+          className="pl-10"
         />
       </div>
 
@@ -514,16 +463,17 @@ const Staff = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Staff</TableHead>
+              <TableHead>Staff Member</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>Date Added</TableHead>
-              {isAdmin && <TableHead className="w-[50px]"></TableHead>}
+              <TableHead>Status</TableHead>
+              <TableHead>Joined</TableHead>
+              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
+              [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -531,22 +481,27 @@ const Staff = () => {
                       <Skeleton className="h-4 w-32" />
                     </div>
                   </TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  {isAdmin && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
+                  {isAdmin && <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>}
                 </TableRow>
               ))
-            ) : filteredStaff && filteredStaff.length > 0 ? (
-              filteredStaff.map((staff) => (
+            ) : filteredStaff?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={isAdmin ? 6 : 5} className="text-center py-8 text-muted-foreground">
+                  No staff members found
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredStaff?.map((staff) => (
                 <TableRow key={staff.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarImage src={staff.avatar_url || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {getInitials(staff.first_name, staff.last_name)}
-                        </AvatarFallback>
+                        <AvatarFallback>{getInitials(staff.first_name, staff.last_name)}</AvatarFallback>
                       </Avatar>
                       <span className="font-medium">{staff.first_name} {staff.last_name}</span>
                     </div>
@@ -556,15 +511,22 @@ const Staff = () => {
                       {staff.role}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <div>{staff.email || "—"}</div>
-                    {staff.phone && <div className="text-xs">{staff.phone}</div>}
+                  <TableCell>
+                    <div className="text-sm">
+                      {staff.email && <div>{staff.email}</div>}
+                      {staff.phone && <div className="text-muted-foreground">{staff.phone}</div>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={staff.is_active ? "default" : "secondary"}>
+                      {staff.is_active ? "Active" : "Inactive"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {format(new Date(staff.created_at), "MMM d, yyyy")}
                   </TableCell>
                   {isAdmin && (
-                    <TableCell>
+                    <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -589,17 +551,6 @@ const Staff = () => {
                   )}
                 </TableRow>
               ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-8">
-                  <p className="text-muted-foreground">No staff members found</p>
-                  {isAdmin && (
-                    <Button variant="link" onClick={() => setIsAddDialogOpen(true)} className="mt-2">
-                      Add your first staff member
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
             )}
           </TableBody>
         </Table>
