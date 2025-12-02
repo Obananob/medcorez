@@ -12,9 +12,14 @@ const Landing = () => {
             <Cross className="h-8 w-8 text-primary" strokeWidth={2.5} />
             <span className="text-2xl font-bold text-foreground">MedCore</span>
           </div>
-          <Link to="/auth">
-            <Button variant="outline">Staff Login</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/register">
+              <Button>Register Hospital</Button>
+            </Link>
+            <Link to="/auth">
+              <Button variant="outline">Staff Login</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
