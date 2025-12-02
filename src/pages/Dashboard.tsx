@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Activity, DollarSign, Stethoscope, Clock, ClipboardList, Eye } from "lucide-react";
+import { Users, Calendar, Activity, Stethoscope, Clock, ClipboardList, Eye } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInYears } from "date-fns";
+import { format, startOfDay, endOfDay, differenceInYears } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -61,23 +61,6 @@ const Dashboard = () => {
         .select("*", { count: "exact", head: true });
       if (error) throw error;
       return count || 0;
-    },
-    enabled: !isDoctor,
-  });
-
-  // Fetch monthly revenue (admin view)
-  const { data: monthlyRevenue, isLoading: loadingRevenue } = useQuery({
-    queryKey: ["dashboard-monthly-revenue"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("total_amount")
-        .eq("status", "paid")
-        .gte("created_at", startOfMonth(today).toISOString())
-        .lte("created_at", endOfMonth(today).toISOString());
-      if (error) throw error;
-      const total = data?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
-      return total;
     },
     enabled: !isDoctor,
   });
@@ -230,13 +213,6 @@ const Dashboard = () => {
       icon: Activity,
       loading: loadingStaff,
       color: "text-warning",
-    },
-    {
-      title: "Monthly Revenue",
-      value: `$${monthlyRevenue?.toLocaleString() || "0"}`,
-      icon: DollarSign,
-      loading: loadingRevenue,
-      color: "text-primary",
     },
   ];
 
