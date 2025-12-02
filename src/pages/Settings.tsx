@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import {
   Select,
   SelectContent,
@@ -17,18 +17,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Building, Globe, CreditCard, FileText, Save, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, Building, Globe, CreditCard, Save, Loader2 } from "lucide-react";
 import { format, addMonths } from "date-fns";
 
-const CURRENCIES = [
-  { symbol: "$", name: "US Dollar (USD)" },
-  { symbol: "₦", name: "Nigerian Naira (NGN)" },
-  { symbol: "£", name: "British Pound (GBP)" },
-  { symbol: "€", name: "Euro (EUR)" },
-  { symbol: "₹", name: "Indian Rupee (INR)" },
-  { symbol: "¥", name: "Japanese Yen (JPY)" },
-  { symbol: "C$", name: "Canadian Dollar (CAD)" },
-  { symbol: "A$", name: "Australian Dollar (AUD)" },
+const COUNTRIES = [
+  { code: "US", name: "United States", currency: "$" },
+  { code: "NG", name: "Nigeria", currency: "₦" },
+  { code: "GB", name: "United Kingdom", currency: "£" },
+  { code: "EU", name: "European Union", currency: "€" },
+  { code: "IN", name: "India", currency: "₹" },
+  { code: "JP", name: "Japan", currency: "¥" },
+  { code: "CA", name: "Canada", currency: "C$" },
+  { code: "AU", name: "Australia", currency: "A$" },
 ];
 
 const TIMEZONES = [
@@ -54,6 +54,7 @@ const Settings = () => {
     address: "",
     contact_phone: "",
     support_email: "",
+    country: "US",
     currency_symbol: "$",
     timezone: "UTC",
   });
@@ -77,16 +78,29 @@ const Settings = () => {
   // Update form when organization loads
   useEffect(() => {
     if (organization) {
+      const country = COUNTRIES.find(c => c.currency === organization.currency_symbol) || COUNTRIES[0];
       setFormData({
         name: organization.name || "",
         address: organization.address || "",
         contact_phone: organization.contact_phone || "",
         support_email: organization.support_email || "",
+        country: country.code,
         currency_symbol: organization.currency_symbol || "$",
         timezone: organization.timezone || "UTC",
       });
     }
   }, [organization]);
+
+  const handleCountryChange = (countryCode: string) => {
+    const country = COUNTRIES.find(c => c.code === countryCode);
+    if (country) {
+      setFormData({
+        ...formData,
+        country: countryCode,
+        currency_symbol: country.currency,
+      });
+    }
+  };
 
   // Save mutation
   const saveMutation = useMutation({
@@ -140,9 +154,7 @@ const Settings = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Side - Settings Forms */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6 max-w-4xl">
           {/* Organization Profile */}
           <Card>
             <CardHeader>
@@ -207,20 +219,20 @@ const Settings = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Currency</Label>
+                  <Label>Country</Label>
                   <Select
-                    value={formData.currency_symbol}
-                    onValueChange={(value) => setFormData({ ...formData, currency_symbol: value })}
+                    value={formData.country}
+                    onValueChange={handleCountryChange}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CURRENCIES.map((currency) => (
-                        <SelectItem key={currency.symbol} value={currency.symbol}>
-                          {currency.symbol} - {currency.name}
+                      {COUNTRIES.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                          {country.name} ({country.currency})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -244,6 +256,11 @@ const Settings = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 border">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">Currency:</span> {formData.currency_symbol} (based on selected country)
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -295,97 +312,6 @@ const Settings = () => {
             )}
           </Button>
         </div>
-
-        {/* Right Side - Receipt Preview */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Receipt Preview
-              </CardTitle>
-              <CardDescription>
-                Live preview of your payment receipts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg p-4 bg-background shadow-sm space-y-4">
-                {/* Receipt Header */}
-                <div className="text-center border-b pb-4">
-                  <h3 className="font-bold text-lg">
-                    {formData.name || "Hospital Name"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground whitespace-pre-line">
-                    {formData.address || "Address not set"}
-                  </p>
-                  {formData.contact_phone && (
-                    <p className="text-xs text-muted-foreground">
-                      Tel: {formData.contact_phone}
-                    </p>
-                  )}
-                  {formData.support_email && (
-                    <p className="text-xs text-muted-foreground">
-                      {formData.support_email}
-                    </p>
-                  )}
-                </div>
-
-                {/* Receipt Body */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Receipt #:</span>
-                    <span>INV-00001</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Date:</span>
-                    <span>{format(new Date(), "MMM d, yyyy")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Patient:</span>
-                    <span>John Doe</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Sample Items */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Consultation Fee</span>
-                    <span>{formData.currency_symbol}5,000.00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Paracetamol x2</span>
-                    <span>{formData.currency_symbol}500.00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Amoxicillin x1</span>
-                    <span>{formData.currency_symbol}1,200.00</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Total */}
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>{formData.currency_symbol}6,700.00</span>
-                </div>
-
-                {/* Footer */}
-                <div className="text-center pt-4 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    Thank you for choosing {formData.name || "our hospital"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Get well soon!
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
     </div>
   );
 };
