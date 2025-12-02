@@ -62,6 +62,29 @@ const Dashboard = () => {
     },
   });
 
+  // Fetch today's appointments with patient and doctor info
+  const { data: todayAppointmentsList, isLoading: loadingTodayList } = useQuery({
+    queryKey: ["dashboard-today-appointments-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          appointment_date,
+          reason_for_visit,
+          status,
+          patient_id,
+          patients (first_name, last_name),
+          doctor:profiles!appointments_doctor_id_fkey (first_name, last_name)
+        `)
+        .gte("appointment_date", startOfDay(today).toISOString())
+        .lte("appointment_date", endOfDay(today).toISOString())
+        .order("appointment_date", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Fetch upcoming appointments with patient info
   const { data: upcomingAppointments, isLoading: loadingUpcoming } = useQuery({
     queryKey: ["dashboard-upcoming-appointments"],
@@ -147,6 +170,55 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Today's Appointments Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Today's Appointments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingTodayList ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : todayAppointmentsList && todayAppointmentsList.length > 0 ? (
+              <div className="space-y-3">
+                {todayAppointmentsList.map((apt) => (
+                  <div key={apt.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {apt.patients?.first_name} {apt.patients?.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(apt.appointment_date), "h:mm a")}
+                        {apt.doctor && ` • Dr. ${apt.doctor.first_name} ${apt.doctor.last_name}`}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded capitalize">
+                      {apt.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No appointments scheduled for today
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Upcoming Appointments</CardTitle>
@@ -187,32 +259,6 @@ const Dashboard = () => {
                 No upcoming appointments scheduled
               </p>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Patients</span>
-                <span className="text-sm font-medium text-foreground">{patientsCount || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Today's Appointments</span>
-                <span className="text-sm font-medium text-foreground">{todayAppointments || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Staff Members</span>
-                <span className="text-sm font-medium text-foreground">{staffCount || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Revenue (This Month)</span>
-                <span className="text-sm font-medium text-foreground">${monthlyRevenue?.toLocaleString() || 0}</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
