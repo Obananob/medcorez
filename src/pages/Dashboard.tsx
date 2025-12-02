@@ -1,34 +1,116 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, Activity, DollarSign } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
 
 const Dashboard = () => {
+  const today = new Date();
+
+  // Fetch total patients count
+  const { data: patientsCount, isLoading: loadingPatients } = useQuery({
+    queryKey: ["dashboard-patients-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("patients")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch today's appointments count
+  const { data: todayAppointments, isLoading: loadingAppointments } = useQuery({
+    queryKey: ["dashboard-today-appointments"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("appointments")
+        .select("*", { count: "exact", head: true })
+        .gte("appointment_date", startOfDay(today).toISOString())
+        .lte("appointment_date", endOfDay(today).toISOString());
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch active staff count
+  const { data: staffCount, isLoading: loadingStaff } = useQuery({
+    queryKey: ["dashboard-staff-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch monthly revenue
+  const { data: monthlyRevenue, isLoading: loadingRevenue } = useQuery({
+    queryKey: ["dashboard-monthly-revenue"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("total_amount")
+        .eq("status", "paid")
+        .gte("created_at", startOfMonth(today).toISOString())
+        .lte("created_at", endOfMonth(today).toISOString());
+      if (error) throw error;
+      const total = data?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
+      return total;
+    },
+  });
+
+  // Fetch upcoming appointments with patient info
+  const { data: upcomingAppointments, isLoading: loadingUpcoming } = useQuery({
+    queryKey: ["dashboard-upcoming-appointments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          appointment_date,
+          reason_for_visit,
+          status,
+          patient_id,
+          patients (first_name, last_name)
+        `)
+        .gte("appointment_date", new Date().toISOString())
+        .order("appointment_date", { ascending: true })
+        .limit(4);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const stats = [
     {
       title: "Total Patients",
-      value: "1,234",
+      value: patientsCount?.toString() || "0",
       icon: Users,
-      trend: "+12.5%",
+      loading: loadingPatients,
       color: "text-primary",
     },
     {
       title: "Today's Appointments",
-      value: "45",
+      value: todayAppointments?.toString() || "0",
       icon: Calendar,
-      trend: "+5.2%",
+      loading: loadingAppointments,
       color: "text-success",
     },
     {
       title: "Active Staff",
-      value: "89",
+      value: staffCount?.toString() || "0",
       icon: Activity,
-      trend: "+2.1%",
+      loading: loadingStaff,
       color: "text-warning",
     },
     {
       title: "Monthly Revenue",
-      value: "$45,231",
+      value: `$${monthlyRevenue?.toLocaleString() || "0"}`,
       icon: DollarSign,
-      trend: "+18.3%",
+      loading: loadingRevenue,
       color: "text-primary",
     },
   ];
@@ -52,12 +134,13 @@ const Dashboard = () => {
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stat.value}
-              </div>
-              <p className="text-xs text-success mt-1">
-                {stat.trend} from last month
-              </p>
+              {stat.loading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">
+                  {stat.value}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -66,48 +149,69 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Upcoming Appointments</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Patient check-in completed
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {i} minutes ago
-                    </p>
+            {loadingUpcoming ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : upcomingAppointments && upcomingAppointments.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingAppointments.map((apt) => (
+                  <div key={apt.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {apt.patients?.first_name} {apt.patients?.last_name} - {apt.reason_for_visit || "Consultation"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(apt.appointment_date), "MMM d, h:mm a")}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded capitalize">
+                      {apt.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No upcoming appointments scheduled
+              </p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming Appointments</CardTitle>
+            <CardTitle>Quick Stats</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      John Doe - Consultation
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {10 + i}:00 AM
-                    </p>
-                  </div>
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                    Scheduled
-                  </span>
-                </div>
-              ))}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total Patients</span>
+                <span className="text-sm font-medium text-foreground">{patientsCount || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Today's Appointments</span>
+                <span className="text-sm font-medium text-foreground">{todayAppointments || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Staff Members</span>
+                <span className="text-sm font-medium text-foreground">{staffCount || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Revenue (This Month)</span>
+                <span className="text-sm font-medium text-foreground">${monthlyRevenue?.toLocaleString() || 0}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
