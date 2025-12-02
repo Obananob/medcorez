@@ -27,13 +27,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Patients", url: "/patients", icon: Users },
-  { title: "Appointments", url: "/appointments", icon: Calendar },
-  { title: "Staff", url: "/staff", icon: Stethoscope },
-  { title: "Inventory", url: "/inventory", icon: Package },
-  { title: "Finance", url: "/finance", icon: DollarSign },
+const allMenuItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "nurse", "receptionist", "pharmacist"] },
+  { title: "Patients", url: "/patients", icon: Users, roles: ["admin", "doctor", "nurse", "receptionist"] },
+  { title: "Appointments", url: "/appointments", icon: Calendar, roles: ["admin", "nurse", "receptionist"] },
+  { title: "My Appointments", url: "/appointments", icon: Calendar, roles: ["doctor"] },
+  { title: "Staff", url: "/staff", icon: Stethoscope, roles: ["admin"] },
+  { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "pharmacist"] },
+  { title: "Finance", url: "/finance", icon: DollarSign, roles: ["admin"] },
 ];
 
 export function AppSidebar() {
@@ -42,6 +43,10 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const currentPath = location.pathname;
+
+  // Filter menu items based on user role
+  const userRole = profile?.role || "receptionist"; // Default to receptionist if no role
+  const menuItems = allMenuItems.filter((item) => item.roles.includes(userRole));
 
   const handleLogout = async () => {
     await signOut();

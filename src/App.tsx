@@ -15,6 +15,7 @@ import Patients from "./pages/Patients";
 import PatientProfile from "./pages/PatientProfile";
 import Staff from "./pages/Staff";
 import Appointments from "./pages/Appointments";
+import Consultation from "./pages/Consultation";
 import { ProtectedLayout } from "./components/ProtectedLayout";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,16 @@ const App = () => (
                 <ProtectedRoute>
                   <ProtectedLayout>
                     <Appointments />
+                  </ProtectedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consultation/:appointmentId"
+              element={
+                <ProtectedRoute>
+                  <ProtectedLayout>
+                    <Consultation />
                   </ProtectedLayout>
                 </ProtectedRoute>
               }

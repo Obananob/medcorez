@@ -223,6 +223,50 @@ export type Database = {
           },
         ]
       }
+      prescriptions: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          dosage: string | null
+          duration: string | null
+          frequency: string | null
+          id: string
+          medicine_name: string
+          notes: string | null
+          organization_id: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          dosage?: string | null
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          medicine_name: string
+          notes?: string | null
+          organization_id: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          dosage?: string | null
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          medicine_name?: string
+          notes?: string | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -272,6 +316,7 @@ export type Database = {
           organization_id: string
           phone: string | null
           role: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -283,6 +328,7 @@ export type Database = {
           organization_id: string
           phone?: string | null
           role: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -294,6 +340,7 @@ export type Database = {
           organization_id?: string
           phone?: string | null
           role?: string
+          user_id?: string | null
         }
         Relationships: []
       }
