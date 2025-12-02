@@ -47,7 +47,7 @@ import {
 import { toast } from "sonner";
 import { Plus, CalendarIcon, Check, ChevronsUpDown, Clock, List, CalendarDays } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const TIME_SLOTS = [
@@ -356,7 +356,7 @@ const Appointments = () => {
                         mode="single"
                         selected={formData.date}
                         onSelect={(date) => setFormData({ ...formData, date })}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) => startOfDay(date) < startOfDay(new Date())}
                         initialFocus
                         className="pointer-events-auto"
                       />
