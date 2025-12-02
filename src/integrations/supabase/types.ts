@@ -176,6 +176,7 @@ export type Database = {
       patients: {
         Row: {
           allergies: string | null
+          avatar_url: string | null
           created_at: string
           dob: string | null
           emergency_contact: string | null
@@ -189,6 +190,7 @@ export type Database = {
         }
         Insert: {
           allergies?: string | null
+          avatar_url?: string | null
           created_at?: string
           dob?: string | null
           emergency_contact?: string | null
@@ -202,6 +204,7 @@ export type Database = {
         }
         Update: {
           allergies?: string | null
+          avatar_url?: string | null
           created_at?: string
           dob?: string | null
           emergency_contact?: string | null
@@ -307,6 +310,7 @@ export type Database = {
       }
       staff: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           first_name: string
@@ -319,6 +323,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           first_name: string
@@ -331,6 +336,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           first_name?: string
