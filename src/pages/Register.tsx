@@ -3,11 +3,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Cross, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+
+const COUNTRIES = [
+  { code: "US", name: "United States", currency: "$" },
+  { code: "NG", name: "Nigeria", currency: "₦" },
+  { code: "GB", name: "United Kingdom", currency: "£" },
+  { code: "EU", name: "European Union", currency: "€" },
+  { code: "IN", name: "India", currency: "₹" },
+  { code: "JP", name: "Japan", currency: "¥" },
+  { code: "CA", name: "Canada", currency: "C$" },
+  { code: "AU", name: "Australia", currency: "A$" },
+  { code: "GH", name: "Ghana", currency: "₵" },
+  { code: "KE", name: "Kenya", currency: "KSh" },
+  { code: "ZA", name: "South Africa", currency: "R" },
+];
 
 const registerSchema = z.object({
   hospitalName: z.string().min(2, "Hospital name must be at least 2 characters").max(100),
@@ -15,6 +37,7 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address").max(255),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
+  country: z.string().min(1, "Please select a country"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -26,12 +49,15 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [country, setCountry] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { signUp, registerHospital } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const selectedCountry = COUNTRIES.find(c => c.code === country);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +70,7 @@ const Register = () => {
       email,
       password,
       confirmPassword,
+      country,
     });
 
     if (!validation.success) {
@@ -117,6 +144,23 @@ const Register = () => {
         return;
       }
 
+      // Update organization with currency based on country
+      if (selectedCountry) {
+        // Get the organization ID from the profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile?.organization_id) {
+          await supabase
+            .from("organizations")
+            .update({ currency_symbol: selectedCountry.currency })
+            .eq("id", profile.organization_id);
+        }
+      }
+
       toast({
         title: "Registration successful!",
         description: "Welcome to MedCore. Redirecting to dashboard...",
@@ -164,6 +208,25 @@ const Register = () => {
               />
               {errors.hospitalName && (
                 <p className="text-sm text-destructive">{errors.hospitalName}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Select value={country} onValueChange={setCountry} disabled={isLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.name} ({c.currency})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.country && (
+                <p className="text-sm text-destructive">{errors.country}</p>
               )}
             </div>
             
