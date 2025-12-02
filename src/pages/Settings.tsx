@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
 import {
   Select,
   SelectContent,
@@ -16,8 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Building, Globe, Save, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Settings as SettingsIcon, Building, Globe, Save, Loader2, Camera, ImageIcon } from "lucide-react";
 
 const COUNTRIES = [
   { code: "US", name: "United States", currency: "$" },
@@ -56,7 +54,10 @@ const Settings = () => {
     country: "US",
     currency_symbol: "$",
     timezone: "UTC",
+    logo_url: "",
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
@@ -86,9 +87,59 @@ const Settings = () => {
         country: country.code,
         currency_symbol: organization.currency_symbol || "$",
         timezone: organization.timezone || "UTC",
+        logo_url: organization.logo_url || "",
       });
     }
   }, [organization]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.organization_id) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${profile.organization_id}/logo.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("organization-logos")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("organization-logos")
+        .getPublicUrl(filePath);
+
+      const logoUrlWithCache = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from("organizations")
+        .update({ logo_url: logoUrlWithCache })
+        .eq("id", profile.organization_id);
+
+      if (updateError) throw updateError;
+
+      setFormData(prev => ({ ...prev, logo_url: logoUrlWithCache }));
+      queryClient.invalidateQueries({ queryKey: ["organization"] });
+      queryClient.invalidateQueries({ queryKey: ["organization-settings"] });
+      toast.success("Logo uploaded successfully");
+    } catch (error: any) {
+      toast.error("Failed to upload logo: " + error.message);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleCountryChange = (countryCode: string) => {
     const country = COUNTRIES.find(c => c.code === countryCode);
@@ -164,6 +215,46 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Logo Upload */}
+              <div className="space-y-2">
+                <Label>Hospital Logo</Label>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="relative w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden bg-muted/50 cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    {formData.logo_url ? (
+                      <img 
+                        src={formData.logo_url} 
+                        alt="Hospital Logo" 
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                    )}
+                    {uploadingLogo && (
+                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-1 right-1 p-1.5 bg-primary rounded-full">
+                      <Camera className="h-3 w-3 text-primary-foreground" />
+                    </div>
+                  </div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    <p>Click to upload your hospital logo</p>
+                    <p>PNG, JPG up to 2MB</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Hospital Name</Label>
                 <Input

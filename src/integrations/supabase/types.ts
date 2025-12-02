@@ -165,6 +165,7 @@ export type Database = {
           created_at: string
           currency_symbol: string | null
           id: string
+          logo_url: string | null
           name: string
           support_email: string | null
           timezone: string | null
@@ -175,6 +176,7 @@ export type Database = {
           created_at?: string
           currency_symbol?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           support_email?: string | null
           timezone?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           created_at?: string
           currency_symbol?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           support_email?: string | null
           timezone?: string | null
