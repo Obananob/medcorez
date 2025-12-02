@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 import {
   Select,
@@ -17,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Building, Globe, CreditCard, Save, Loader2 } from "lucide-react";
-import { format, addMonths } from "date-fns";
+import { Settings as SettingsIcon, Building, Globe, Save, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
 const COUNTRIES = [
   { code: "US", name: "United States", currency: "$" },
@@ -138,8 +137,6 @@ const Settings = () => {
       </div>
     );
   }
-
-  const nextBillingDate = addMonths(new Date(), 1);
 
   return (
     <div className="space-y-6">
@@ -261,33 +258,6 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium">Currency:</span> {formData.currency_symbol} (based on selected country)
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Subscription Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Subscription Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Enterprise Tier</span>
-                    <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Unlimited users, priority support, advanced analytics
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Next billing date</p>
-                  <p className="font-semibold">{format(nextBillingDate, "MMM d, yyyy")}</p>
-                </div>
               </div>
             </CardContent>
           </Card>
