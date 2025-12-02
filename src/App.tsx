@@ -16,6 +16,9 @@ import PatientProfile from "./pages/PatientProfile";
 import Staff from "./pages/Staff";
 import Appointments from "./pages/Appointments";
 import Consultation from "./pages/Consultation";
+import Inventory from "./pages/Inventory";
+import Finance from "./pages/Finance";
+import Settings from "./pages/Settings";
 import { ProtectedLayout } from "./components/ProtectedLayout";
 
 const queryClient = new QueryClient();
@@ -87,6 +90,36 @@ const App = () => (
                 <ProtectedRoute>
                   <ProtectedLayout>
                     <Consultation />
+                  </ProtectedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <ProtectedRoute>
+                  <ProtectedLayout>
+                    <Inventory />
+                  </ProtectedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance"
+              element={
+                <ProtectedRoute>
+                  <ProtectedLayout>
+                    <Finance />
+                  </ProtectedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <ProtectedLayout>
+                    <Settings />
                   </ProtectedLayout>
                 </ProtectedRoute>
               }

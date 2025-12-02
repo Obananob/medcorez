@@ -6,7 +6,9 @@ import {
   Package, 
   DollarSign,
   Cross,
-  LogOut
+  LogOut,
+  Settings,
+  Pill
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,6 +37,8 @@ const allMenuItems = [
   { title: "Staff", url: "/staff", icon: Stethoscope, roles: ["admin"] },
   { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "pharmacist"] },
   { title: "Finance", url: "/finance", icon: DollarSign, roles: ["admin"] },
+  { title: "Pharmacy", url: "/finance", icon: Pill, roles: ["pharmacist"] },
+  { title: "Settings", url: "/settings", icon: Settings, roles: ["admin"] },
 ];
 
 export function AppSidebar() {

@@ -17,6 +17,7 @@ export type Database = {
       appointments: {
         Row: {
           appointment_date: string
+          consultation_fee: number | null
           created_at: string
           diagnosis: string | null
           doctor_id: string | null
@@ -29,6 +30,7 @@ export type Database = {
         }
         Insert: {
           appointment_date: string
+          consultation_fee?: number | null
           created_at?: string
           diagnosis?: string | null
           doctor_id?: string | null
@@ -41,6 +43,7 @@ export type Database = {
         }
         Update: {
           appointment_date?: string
+          consultation_fee?: number | null
           created_at?: string
           diagnosis?: string | null
           doctor_id?: string | null
@@ -157,19 +160,34 @@ export type Database = {
       }
       organizations: {
         Row: {
+          address: string | null
+          contact_phone: string | null
           created_at: string
+          currency_symbol: string | null
           id: string
           name: string
+          support_email: string | null
+          timezone: string | null
         }
         Insert: {
+          address?: string | null
+          contact_phone?: string | null
           created_at?: string
+          currency_symbol?: string | null
           id?: string
           name: string
+          support_email?: string | null
+          timezone?: string | null
         }
         Update: {
+          address?: string | null
+          contact_phone?: string | null
           created_at?: string
+          currency_symbol?: string | null
           id?: string
           name?: string
+          support_email?: string | null
+          timezone?: string | null
         }
         Relationships: []
       }
@@ -230,6 +248,7 @@ export type Database = {
         Row: {
           appointment_id: string
           created_at: string
+          dispense_status: string | null
           dosage: string | null
           duration: string | null
           frequency: string | null
@@ -241,6 +260,7 @@ export type Database = {
         Insert: {
           appointment_id: string
           created_at?: string
+          dispense_status?: string | null
           dosage?: string | null
           duration?: string | null
           frequency?: string | null
@@ -252,6 +272,7 @@ export type Database = {
         Update: {
           appointment_id?: string
           created_at?: string
+          dispense_status?: string | null
           dosage?: string | null
           duration?: string | null
           frequency?: string | null
