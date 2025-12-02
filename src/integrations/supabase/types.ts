@@ -178,6 +178,7 @@ export type Database = {
           allergies: string | null
           created_at: string
           dob: string | null
+          emergency_contact: string | null
           first_name: string
           gender: string | null
           id: string
@@ -190,6 +191,7 @@ export type Database = {
           allergies?: string | null
           created_at?: string
           dob?: string | null
+          emergency_contact?: string | null
           first_name: string
           gender?: string | null
           id?: string
@@ -202,6 +204,7 @@ export type Database = {
           allergies?: string | null
           created_at?: string
           dob?: string | null
+          emergency_contact?: string | null
           first_name?: string
           gender?: string | null
           id?: string
