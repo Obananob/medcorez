@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -10,9 +9,10 @@ import {
   LogOut
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 import {
   Sidebar,
@@ -39,19 +39,36 @@ const menuItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
   const currentPath = location.pathname;
 
-  const isActive = (path: string) => currentPath === path;
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log("Logout clicked");
+  // Get user initials for avatar
+  const getInitials = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
+
+  // Get display name
+  const getDisplayName = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name} ${profile.last_name}`;
+    }
+    return user?.email?.split("@")[0] || "User";
   };
 
   return (
-    <Sidebar
-      collapsible="icon"
-    >
+    <Sidebar collapsible="icon">
       <SidebarContent>
         {/* Logo */}
         <div className="p-4 flex items-center gap-2">
@@ -92,15 +109,15 @@ export function AppSidebar() {
             <div className="flex items-center gap-3">
               <Avatar>
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  DR
+                  {getInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  Dr. Admin
+                  {getDisplayName()}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  admin@hospital.com
+                  {user?.email || ""}
                 </p>
               </div>
             </div>
