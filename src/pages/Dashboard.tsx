@@ -120,19 +120,10 @@ const Dashboard = () => {
     enabled: !isDoctor,
   });
 
-  // Doctor's appointments (waiting patients) - query via staff table link
+  // Doctor's appointments (waiting patients) - doctor_id references profiles.id
   const { data: doctorAppointments, isLoading: loadingDoctorApts } = useQuery({
     queryKey: ["doctor-appointments", user?.id],
     queryFn: async () => {
-      // First find the staff record linked to this user
-      const { data: staffRecord } = await supabase
-        .from("staff")
-        .select("id")
-        .eq("user_id", user?.id)
-        .maybeSingle();
-
-      if (!staffRecord) return [];
-
       const { data, error } = await supabase
         .from("appointments")
         .select(`
@@ -142,7 +133,7 @@ const Dashboard = () => {
           status,
           patients (id, first_name, last_name, dob, gender, phone)
         `)
-        .eq("doctor_id", staffRecord.id)
+        .eq("doctor_id", user?.id)
         .in("status", ["scheduled", "waiting"])
         .gte("appointment_date", startOfDay(today).toISOString())
         .lte("appointment_date", endOfDay(today).toISOString())

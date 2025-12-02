@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,16 +14,30 @@ import { toast } from "sonner";
 import { 
   ArrowLeft, 
   User, 
-  Calendar, 
   Thermometer, 
   Heart, 
   Plus, 
   Trash2,
   CheckCircle,
-  Stethoscope
+  Stethoscope,
+  Pill,
+  Search
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, differenceInYears } from "date-fns";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Prescription {
   medicine_name: string;
@@ -41,6 +55,8 @@ const Consultation = () => {
   const [diagnosis, setDiagnosis] = useState("");
   const [doctorNotes, setDoctorNotes] = useState("");
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [medicineOpen, setMedicineOpen] = useState(false);
+  const [medicineSearch, setMedicineSearch] = useState("");
   const [newPrescription, setNewPrescription] = useState<Prescription>({
     medicine_name: "",
     dosage: "",
@@ -66,6 +82,24 @@ const Consultation = () => {
     },
     enabled: !!appointmentId,
   });
+
+  // Fetch inventory for medicine autocomplete
+  const { data: inventoryItems } = useQuery({
+    queryKey: ["inventory-medicines"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory")
+        .select("id, item_name, stock_quantity")
+        .gt("stock_quantity", 0)
+        .order("item_name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const filteredMedicines = inventoryItems?.filter((item) =>
+    item.item_name.toLowerCase().includes(medicineSearch.toLowerCase())
+  ) || [];
 
   // Complete consultation mutation
   const completeMutation = useMutation({
@@ -129,6 +163,7 @@ const Consultation = () => {
       frequency: "",
       duration: "",
     });
+    setMedicineSearch("");
   };
 
   const removePrescription = (index: number) => {
@@ -335,15 +370,66 @@ const Consultation = () => {
               {/* Add new prescription form */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Label htmlFor="medicine">Medicine Name</Label>
-                  <Input
-                    id="medicine"
-                    placeholder="e.g., Paracetamol"
-                    value={newPrescription.medicine_name}
-                    onChange={(e) =>
-                      setNewPrescription({ ...newPrescription, medicine_name: e.target.value })
-                    }
-                  />
+                  <Label>Medicine Name</Label>
+                  <Popover open={medicineOpen} onOpenChange={setMedicineOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={medicineOpen}
+                        className="w-full justify-between font-normal"
+                      >
+                        {newPrescription.medicine_name || "Search medicine from inventory..."}
+                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Search medicine..." 
+                          value={medicineSearch}
+                          onValueChange={setMedicineSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>
+                            <div className="p-2 text-center">
+                              <p className="text-sm text-muted-foreground">No medicine found in inventory</p>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => {
+                                  setNewPrescription({ ...newPrescription, medicine_name: medicineSearch });
+                                  setMedicineOpen(false);
+                                }}
+                              >
+                                Use "{medicineSearch}" anyway
+                              </Button>
+                            </div>
+                          </CommandEmpty>
+                          <CommandGroup heading="Available Medicines">
+                            {filteredMedicines.map((item) => (
+                              <CommandItem
+                                key={item.id}
+                                value={item.item_name}
+                                onSelect={() => {
+                                  setNewPrescription({ ...newPrescription, medicine_name: item.item_name });
+                                  setMedicineSearch("");
+                                  setMedicineOpen(false);
+                                }}
+                              >
+                                <Pill className="mr-2 h-4 w-4" />
+                                <span>{item.item_name}</span>
+                                <Badge variant="secondary" className="ml-auto">
+                                  {item.stock_quantity} in stock
+                                </Badge>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <Label htmlFor="dosage">Dosage</Label>
