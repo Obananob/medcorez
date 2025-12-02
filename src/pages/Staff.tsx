@@ -53,12 +53,12 @@ const Staff = () => {
     email: "",
   });
 
-  // Fetch staff members (profiles in same organization)
+  // Fetch staff members from staff table
   const { data: staffMembers, isLoading } = useQuery({
     queryKey: ["staff-members"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
+        .from("staff")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -74,14 +74,13 @@ const Staff = () => {
       }
       
       const { data, error } = await supabase
-        .from("profiles")
+        .from("staff")
         .insert({
           first_name: staffData.first_name,
           last_name: staffData.last_name,
           role: staffData.role,
           email: staffData.email,
           organization_id: profile.organization_id,
-          id: crypto.randomUUID(), // Generate a UUID for the profile
         })
         .select()
         .single();
