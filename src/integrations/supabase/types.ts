@@ -261,6 +261,42 @@ export type Database = {
           },
         ]
       }
+      staff: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          is_active: boolean | null
+          last_name: string
+          organization_id: string
+          phone: string | null
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean | null
+          last_name: string
+          organization_id: string
+          phone?: string | null
+          role: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean | null
+          last_name?: string
+          organization_id?: string
+          phone?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

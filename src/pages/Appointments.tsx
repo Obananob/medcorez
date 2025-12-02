@@ -103,12 +103,12 @@ const Appointments = () => {
     },
   });
 
-  // Fetch doctors for dropdown (profiles where role = 'doctor')
+  // Fetch doctors for dropdown (staff where role = 'doctor')
   const { data: doctors } = useQuery({
     queryKey: ["doctors-dropdown"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
+        .from("staff")
         .select("id, first_name, last_name")
         .eq("role", "doctor")
         .order("first_name");
