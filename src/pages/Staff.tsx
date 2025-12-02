@@ -165,7 +165,11 @@ const Staff = () => {
       resetForm();
     },
     onError: (error) => {
-      toast.error("Failed to create staff: " + error.message);
+      if (error.message.includes("already been registered")) {
+        toast.error("This email is already in use. Please use a different email address.");
+      } else {
+        toast.error("Failed to create staff: " + error.message);
+      }
     },
   });
 
