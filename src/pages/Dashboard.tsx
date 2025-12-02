@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, differenceInYears } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { TriageModal } from "@/components/TriageModal";
 
@@ -142,7 +143,7 @@ const Dashboard = () => {
           patients (id, first_name, last_name, dob, gender, phone)
         `)
         .eq("doctor_id", user?.id)
-        .in("status", ["scheduled", "waiting"])
+        .in("status", ["waiting", "in_progress"])
         .gte("appointment_date", startOfDay(today).toISOString())
         .lte("appointment_date", endOfDay(today).toISOString())
         .order("appointment_date", { ascending: true });
@@ -151,6 +152,20 @@ const Dashboard = () => {
     },
     enabled: isDoctor && !!user?.id,
   });
+
+  // Start consultation - update status to in_progress
+  const startConsultation = async (appointmentId: string) => {
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "in_progress" })
+      .eq("id", appointmentId);
+    
+    if (error) {
+      toast.error("Failed to start consultation");
+      return;
+    }
+    navigate(`/consultation/${appointmentId}`);
+  };
 
   // Nurse's triage queue - all today's appointments with status sorting
   const { data: nurseAppointments, isLoading: loadingNurseApts } = useQuery({
@@ -519,12 +534,14 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant={apt.status === "waiting" ? "default" : "secondary"}>
-                        {apt.status}
-                      </Badge>
-                      <Button onClick={() => navigate(`/consultation/${apt.id}`)}>
+                      {apt.status === "waiting" ? (
+                        <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Ready for Consult</Badge>
+                      ) : (
+                        <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">In Progress</Badge>
+                      )}
+                      <Button onClick={() => startConsultation(apt.id)}>
                         <Stethoscope className="h-4 w-4 mr-2" />
-                        Start Consultation
+                        {apt.status === "in_progress" ? "Continue" : "Start Consultation"}
                       </Button>
                     </div>
                   </div>

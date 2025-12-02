@@ -21,7 +21,8 @@ import {
   CheckCircle,
   Stethoscope,
   Pill,
-  Search
+  Search,
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, differenceInYears } from "date-fns";
@@ -81,6 +82,24 @@ const Consultation = () => {
       return data;
     },
     enabled: !!appointmentId,
+  });
+
+  // Fetch patient history (past appointments)
+  const { data: patientHistory } = useQuery({
+    queryKey: ["patient-history", appointment?.patients?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, diagnosis, status")
+        .eq("patient_id", appointment?.patients?.id)
+        .neq("id", appointmentId)
+        .eq("status", "completed")
+        .order("appointment_date", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!appointment?.patients?.id,
   });
 
   // Fetch inventory for medicine autocomplete
@@ -311,6 +330,40 @@ const Consultation = () => {
               ) : (
                 <p className="text-muted-foreground text-center py-4">
                   No vitals recorded yet
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Patient History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-500" />
+                Visit History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {patientHistory && patientHistory.length > 0 ? (
+                <div className="space-y-2">
+                  {patientHistory.map((visit) => (
+                    <div
+                      key={visit.id}
+                      className="p-3 rounded-lg bg-muted/50 text-sm"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          {format(new Date(visit.appointment_date), "MMM d, yyyy")}
+                        </span>
+                        <Badge variant="outline" className="text-green-600">Completed</Badge>
+                      </div>
+                      <p className="mt-1 font-medium">{visit.diagnosis || "No diagnosis recorded"}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  No previous visits
                 </p>
               )}
             </CardContent>
