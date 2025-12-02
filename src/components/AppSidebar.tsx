@@ -8,13 +8,15 @@ import {
   Cross,
   LogOut,
   Settings,
-  Pill
+  Pill,
+  Download
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 import {
   Sidebar,
@@ -46,6 +48,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { isInstallable, installApp } = usePWAInstall();
   const currentPath = location.pathname;
 
   // Filter menu items based on user role
@@ -130,6 +133,17 @@ export function AppSidebar() {
                 </p>
               </div>
             </div>
+            {isInstallable && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={installApp}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Install App
+              </Button>
+            )}
             <Button
               variant="destructive"
               size="sm"
@@ -141,14 +155,26 @@ export function AppSidebar() {
             </Button>
           </div>
         ) : (
-          <Button
-            variant="destructive"
-            size="icon"
-            className="w-full"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <div className="space-y-2">
+            {isInstallable && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="w-full"
+                onClick={installApp}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              size="icon"
+              className="w-full"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </SidebarFooter>
     </Sidebar>
