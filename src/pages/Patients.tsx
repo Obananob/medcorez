@@ -368,20 +368,21 @@ const Patients = () => {
           <Plus className="h-4 w-4 mr-2" />
           Add Patient
         </Button>
-
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Patient</DialogTitle>
-            </DialogHeader>
-            <PatientForm
-              onSubmit={handleAddSubmit}
-              isLoading={addPatientMutation.isPending}
-              submitLabel="Save Patient"
-            />
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Add Patient Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Add New Patient</DialogTitle>
+          </DialogHeader>
+          <PatientForm
+            onSubmit={handleAddSubmit}
+            isLoading={addPatientMutation.isPending}
+            submitLabel="Save Patient"
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Search Bar */}
       <Card>
@@ -500,7 +501,7 @@ const Patients = () => {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
           </DialogHeader>
