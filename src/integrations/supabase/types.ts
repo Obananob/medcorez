@@ -78,6 +78,36 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          category: string
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          rating: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          rating?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          rating?: string | null
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           created_at: string
