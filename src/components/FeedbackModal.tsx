@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-
+import { supabase } from "@/integrations/supabase/client";
 interface FeedbackModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,12 +44,23 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
 
     setIsSubmitting(true);
     
-    // Simulate submission
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const { error } = await supabase.from("feedback").insert({
+      name: formData.name,
+      email: formData.email,
+      category: formData.category,
+      rating: formData.rating || null,
+      message: formData.message,
+    });
+
+    if (error) {
+      toast.error("Failed to submit feedback. Please try again.");
+      console.error("Feedback submission error:", error);
+    } else {
+      toast.success("Thank you for your feedback!");
+      setFormData({ name: "", email: "", category: "", rating: "", message: "" });
+      onOpenChange(false);
+    }
     
-    toast.success("Thank you for your feedback!");
-    setFormData({ name: "", email: "", category: "", rating: "", message: "" });
-    onOpenChange(false);
     setIsSubmitting(false);
   };
 
