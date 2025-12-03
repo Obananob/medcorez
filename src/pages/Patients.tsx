@@ -35,21 +35,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Plus, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { differenceInYears } from "date-fns";
-import { AvatarUpload } from "@/components/AvatarUpload";
+import { PatientForm, PatientFormData } from "@/components/PatientForm";
 
 interface Patient {
   id: string;
@@ -73,7 +65,7 @@ const Patients = () => {
   const [deletePatient, setDeletePatient] = useState<Patient | null>(null);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PatientFormData>({
     first_name: "",
     last_name: "",
     dob: "",
@@ -247,114 +239,10 @@ const Patients = () => {
     return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
   };
 
-  const PatientForm = ({ onSubmit, isLoading, submitLabel }: { onSubmit: (e: React.FormEvent) => void; isLoading: boolean; submitLabel: string }) => (
-    <form onSubmit={onSubmit} className="space-y-4 mt-4">
-      <AvatarUpload
-        currentUrl={formData.avatar_url}
-        onUpload={(url) => setFormData({ ...formData, avatar_url: url })}
-        folder="patients"
-        name={`${formData.first_name} ${formData.last_name}`}
-      />
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="first_name">First Name *</Label>
-          <Input
-            id="first_name"
-            value={formData.first_name}
-            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-            placeholder="John"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="last_name">Last Name *</Label>
-          <Input
-            id="last_name"
-            value={formData.last_name}
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-            placeholder="Doe"
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="dob">Date of Birth</Label>
-          <Input
-            id="dob"
-            type="date"
-            value={formData.dob}
-            onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="gender">Gender</Label>
-          <Select
-            value={formData.gender}
-            onValueChange={(value) => setFormData({ ...formData, gender: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select gender" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="male">Male</SelectItem>
-              <SelectItem value="female">Female</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input
-          id="phone"
-          type="tel"
-          value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          placeholder="+1 (555) 000-0000"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="emergency_contact">Emergency Contact</Label>
-        <Input
-          id="emergency_contact"
-          value={formData.emergency_contact}
-          onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
-          placeholder="Name - Phone number"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="allergies">Allergies</Label>
-        <Input
-          id="allergies"
-          value={formData.allergies}
-          onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-          placeholder="Penicillin, Peanuts, etc."
-        />
-      </div>
-
-      <div className="flex justify-end gap-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setIsAddDialogOpen(false);
-            setIsEditDialogOpen(false);
-          }}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : submitLabel}
-        </Button>
-      </div>
-    </form>
-  );
+  const handleCancel = () => {
+    setIsAddDialogOpen(false);
+    setIsEditDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -377,7 +265,10 @@ const Patients = () => {
             <DialogTitle>Add New Patient</DialogTitle>
           </DialogHeader>
           <PatientForm
+            formData={formData}
+            setFormData={setFormData}
             onSubmit={handleAddSubmit}
+            onCancel={handleCancel}
             isLoading={addPatientMutation.isPending}
             submitLabel="Save Patient"
           />
@@ -506,7 +397,10 @@ const Patients = () => {
             <DialogTitle>Edit Patient</DialogTitle>
           </DialogHeader>
           <PatientForm
+            formData={formData}
+            setFormData={setFormData}
             onSubmit={handleEditSubmit}
+            onCancel={handleCancel}
             isLoading={updatePatientMutation.isPending}
             submitLabel="Save Changes"
           />
