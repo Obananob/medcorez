@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -365,13 +364,12 @@ const Patients = () => {
           <p className="text-muted-foreground mt-1">Manage your patient records</p>
         </div>
 
+        <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Patient
+        </Button>
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Patient
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Add New Patient</DialogTitle>
