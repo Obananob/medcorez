@@ -4,7 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Phone, Calendar, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  ArrowLeft, 
+  User, 
+  Calendar, 
+  FileText, 
+  Thermometer,
+  Heart,
+  Activity,
+  Scale,
+  Ruler
+} from "lucide-react";
 import { differenceInYears, format } from "date-fns";
 
 const PatientProfile = () => {
@@ -25,9 +36,61 @@ const PatientProfile = () => {
     enabled: !!id,
   });
 
+  // Fetch patient's medical history (appointments with vitals)
+  const { data: medicalHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ["patient-history", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          appointment_date,
+          reason_for_visit,
+          diagnosis,
+          status,
+          consultation_fee,
+          doctor_notes,
+          vitals (
+            temperature,
+            blood_pressure_systolic,
+            blood_pressure_diastolic,
+            heart_rate,
+            weight_kg,
+            height_cm
+          )
+        `)
+        .eq("patient_id", id)
+        .order("appointment_date", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
   const calculateAge = (dob: string | null) => {
     if (!dob) return null;
     return differenceInYears(new Date(), new Date(dob));
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    switch (status) {
+      case "completed":
+        return <Badge variant="default" className="bg-green-500">Completed</Badge>;
+      case "in_progress":
+        return <Badge variant="default" className="bg-blue-500">In Progress</Badge>;
+      case "triaged":
+        return <Badge variant="default" className="bg-yellow-500">Triaged</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive">Cancelled</Badge>;
+      default:
+        return <Badge variant="secondary">Scheduled</Badge>;
+    }
+  };
+
+  const calculateBMI = (weight: number | null, height: number | null) => {
+    if (!weight || !height) return null;
+    const heightM = height / 100;
+    return (weight / (heightM * heightM)).toFixed(1);
   };
 
   if (isLoading) {
@@ -151,6 +214,10 @@ const PatientProfile = () => {
               <span className="font-medium">{patient.allergies || "None recorded"}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Total Visits</span>
+              <span className="font-medium">{medicalHistory?.length || 0}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Registered</span>
               <span className="font-medium">
                 {format(new Date(patient.created_at), "MMMM d, yyyy")}
@@ -160,7 +227,7 @@ const PatientProfile = () => {
         </Card>
       </div>
 
-      {/* Medical History Placeholder */}
+      {/* Medical History */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -169,13 +236,124 @@ const PatientProfile = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Medical history timeline will be displayed here</p>
-            <p className="text-sm mt-2">
-              Appointments, diagnoses, and treatments will appear once recorded
-            </p>
-          </div>
+          {isLoadingHistory ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          ) : medicalHistory && medicalHistory.length > 0 ? (
+            <div className="space-y-4">
+              {medicalHistory.map((visit) => {
+                const vitals = visit.vitals?.[0];
+                const bmi = vitals ? calculateBMI(vitals.weight_kg, vitals.height_cm) : null;
+                
+                return (
+                  <div
+                    key={visit.id}
+                    className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors"
+                  >
+                    {/* Visit Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">
+                          {format(new Date(visit.appointment_date), "MMMM d, yyyy 'at' h:mm a")}
+                        </span>
+                      </div>
+                      {getStatusBadge(visit.status)}
+                    </div>
+
+                    {/* Reason for Visit */}
+                    {visit.reason_for_visit && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Reason: </span>
+                        <span>{visit.reason_for_visit}</span>
+                      </div>
+                    )}
+
+                    {/* Diagnosis */}
+                    {visit.diagnosis && (
+                      <div className="text-sm bg-primary/5 p-2 rounded">
+                        <span className="text-muted-foreground font-medium">Diagnosis: </span>
+                        <span>{visit.diagnosis}</span>
+                      </div>
+                    )}
+
+                    {/* Vitals */}
+                    {vitals && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t">
+                        {vitals.temperature && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Thermometer className="h-4 w-4 text-orange-500" />
+                            <div>
+                              <p className="text-muted-foreground text-xs">Temp</p>
+                              <p className="font-medium">{vitals.temperature}°C</p>
+                            </div>
+                          </div>
+                        )}
+                        {(vitals.blood_pressure_systolic || vitals.blood_pressure_diastolic) && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Activity className="h-4 w-4 text-red-500" />
+                            <div>
+                              <p className="text-muted-foreground text-xs">BP</p>
+                              <p className="font-medium">
+                                {vitals.blood_pressure_systolic || "-"}/{vitals.blood_pressure_diastolic || "-"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {vitals.heart_rate && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Heart className="h-4 w-4 text-pink-500" />
+                            <div>
+                              <p className="text-muted-foreground text-xs">Heart Rate</p>
+                              <p className="font-medium">{vitals.heart_rate} bpm</p>
+                            </div>
+                          </div>
+                        )}
+                        {vitals.weight_kg && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Scale className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <p className="text-muted-foreground text-xs">Weight</p>
+                              <p className="font-medium">{vitals.weight_kg} kg</p>
+                            </div>
+                          </div>
+                        )}
+                        {vitals.height_cm && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Ruler className="h-4 w-4 text-green-500" />
+                            <div>
+                              <p className="text-muted-foreground text-xs">Height</p>
+                              <p className="font-medium">{vitals.height_cm} cm</p>
+                            </div>
+                          </div>
+                        )}
+                        {bmi && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Activity className="h-4 w-4 text-purple-500" />
+                            <div>
+                              <p className="text-muted-foreground text-xs">BMI</p>
+                              <p className="font-medium">{bmi}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No medical history recorded yet</p>
+              <p className="text-sm mt-2">
+                Appointments and vitals will appear here once recorded
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
