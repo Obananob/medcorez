@@ -36,6 +36,7 @@ import {
   Printer
 } from "lucide-react";
 import { format } from "date-fns";
+import { generateReceipt } from "@/utils/generateReceipt";
 
 const Finance = () => {
   const { profile } = useAuth();
@@ -56,7 +57,7 @@ const Finance = () => {
             id,
             appointment_date,
             consultation_fee,
-            patients (first_name, last_name)
+            patients (first_name, last_name, medical_record_number)
           )
         `)
         .order("created_at", { ascending: false });
@@ -76,7 +77,7 @@ const Finance = () => {
           appointments (
             id,
             appointment_date,
-            patients (first_name, last_name)
+            patients (first_name, last_name, medical_record_number)
           )
         `)
         .order("created_at", { ascending: false });
@@ -506,6 +507,12 @@ const Finance = () => {
                     {selectedInvoice.appointments?.patients?.last_name}
                   </span>
                 </div>
+                {selectedInvoice.appointments?.patients?.medical_record_number && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">MRN:</span>
+                    <span className="font-mono">{selectedInvoice.appointments.patients.medical_record_number}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Status:</span>
                   <Badge className={selectedInvoice.status === "paid" ? "bg-green-500" : "bg-orange-500"}>
@@ -534,12 +541,27 @@ const Finance = () => {
                 </Button>
               )}
 
-              {selectedInvoice.status === "paid" && (
-                <Button variant="outline" className="w-full" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4 mr-2" />
-                  Print Receipt
-                </Button>
-              )}
+              <Button 
+                variant={selectedInvoice.status === "paid" ? "default" : "outline"} 
+                className="w-full" 
+                onClick={() => {
+                  generateReceipt({
+                    invoiceId: selectedInvoice.id,
+                    hospitalName: organization?.name || "Hospital",
+                    hospitalAddress: organization?.address || undefined,
+                    hospitalPhone: organization?.contact_phone || undefined,
+                    patientName: `${selectedInvoice.appointments?.patients?.first_name || ""} ${selectedInvoice.appointments?.patients?.last_name || ""}`.trim(),
+                    patientMRN: selectedInvoice.appointments?.patients?.medical_record_number || undefined,
+                    date: new Date(selectedInvoice.created_at),
+                    amount: Number(selectedInvoice.total_amount),
+                    currencySymbol: organization?.currency_symbol || "₦",
+                    status: selectedInvoice.status,
+                  });
+                }}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print Receipt
+              </Button>
             </div>
           )}
         </DialogContent>
