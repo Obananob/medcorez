@@ -12,15 +12,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // Check localStorage first
+    // Check localStorage first, default to light mode
     const stored = localStorage.getItem("medcore-theme");
     if (stored === "light" || stored === "dark") {
       return stored;
     }
-    // Fall back to system preference
-    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
-    }
+    // Default to light mode (not system preference)
     return "light";
   });
 

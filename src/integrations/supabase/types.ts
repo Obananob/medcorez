@@ -14,6 +14,163 @@ export type Database = {
   }
   public: {
     Tables: {
+      anc_enrollments: {
+        Row: {
+          blood_group: string | null
+          created_at: string
+          edd: string
+          enrolled_at: string
+          genotype: string | null
+          gravida: number
+          hiv_status: string | null
+          id: string
+          is_active: boolean
+          lmp: string
+          organization_id: string
+          para: number
+          patient_id: string
+          updated_at: string
+        }
+        Insert: {
+          blood_group?: string | null
+          created_at?: string
+          edd: string
+          enrolled_at?: string
+          genotype?: string | null
+          gravida?: number
+          hiv_status?: string | null
+          id?: string
+          is_active?: boolean
+          lmp: string
+          organization_id: string
+          para?: number
+          patient_id: string
+          updated_at?: string
+        }
+        Update: {
+          blood_group?: string | null
+          created_at?: string
+          edd?: string
+          enrolled_at?: string
+          genotype?: string | null
+          gravida?: number
+          hiv_status?: string | null
+          id?: string
+          is_active?: boolean
+          lmp?: string
+          organization_id?: string
+          para?: number
+          patient_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anc_enrollments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anc_enrollments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anc_visits: {
+        Row: {
+          attending_staff_id: string | null
+          blood_pressure_diastolic: number | null
+          blood_pressure_systolic: number | null
+          created_at: string
+          edema: boolean | null
+          enrollment_id: string
+          fetal_heart_rate: number | null
+          fetal_presentation: string | null
+          fundal_height_cm: number | null
+          gestational_age_days: number | null
+          gestational_age_weeks: number | null
+          id: string
+          notes: string | null
+          organization_id: string
+          patient_id: string
+          updated_at: string
+          urine_glucose: string | null
+          urine_protein: string | null
+          visit_date: string
+          weight_kg: number | null
+        }
+        Insert: {
+          attending_staff_id?: string | null
+          blood_pressure_diastolic?: number | null
+          blood_pressure_systolic?: number | null
+          created_at?: string
+          edema?: boolean | null
+          enrollment_id: string
+          fetal_heart_rate?: number | null
+          fetal_presentation?: string | null
+          fundal_height_cm?: number | null
+          gestational_age_days?: number | null
+          gestational_age_weeks?: number | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          patient_id: string
+          updated_at?: string
+          urine_glucose?: string | null
+          urine_protein?: string | null
+          visit_date?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          attending_staff_id?: string | null
+          blood_pressure_diastolic?: number | null
+          blood_pressure_systolic?: number | null
+          created_at?: string
+          edema?: boolean | null
+          enrollment_id?: string
+          fetal_heart_rate?: number | null
+          fetal_presentation?: string | null
+          fundal_height_cm?: number | null
+          gestational_age_days?: number | null
+          gestational_age_weeks?: number | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          patient_id?: string
+          updated_at?: string
+          urine_glucose?: string | null
+          urine_protein?: string | null
+          visit_date?: string
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anc_visits_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "anc_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anc_visits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anc_visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_logs: {
         Row: {
           created_at: string

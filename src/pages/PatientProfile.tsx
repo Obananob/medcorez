@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, 
   User, 
@@ -18,16 +20,20 @@ import {
   Printer,
   AlertTriangle,
   Pin,
-  Image
+  Image,
+  Baby
 } from "lucide-react";
 import { differenceInYears, format } from "date-fns";
 import { generatePatientPDF } from "@/utils/generatePatientPDF";
 import { useOrganization } from "@/hooks/useOrganization";
 import { VitalsChart } from "@/components/VitalsChart";
+import { ANCJourneyTab } from "@/components/anc/ANCJourneyTab";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { organization } = useOrganization();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
 
   const { data: patient, isLoading } = useQuery({
