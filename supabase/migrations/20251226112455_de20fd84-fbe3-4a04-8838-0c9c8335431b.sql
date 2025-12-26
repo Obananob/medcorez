@@ -1,0 +1,22 @@
+-- Add immunization tracking columns to anc_enrollments
+ALTER TABLE public.anc_enrollments 
+ADD COLUMN IF NOT EXISTS tt1_date date,
+ADD COLUMN IF NOT EXISTS tt1_staff_id uuid,
+ADD COLUMN IF NOT EXISTS tt2_date date,
+ADD COLUMN IF NOT EXISTS tt2_staff_id uuid,
+ADD COLUMN IF NOT EXISTS tt3_date date,
+ADD COLUMN IF NOT EXISTS tt3_staff_id uuid,
+ADD COLUMN IF NOT EXISTS tt4_date date,
+ADD COLUMN IF NOT EXISTS tt4_staff_id uuid,
+ADD COLUMN IF NOT EXISTS tt5_date date,
+ADD COLUMN IF NOT EXISTS tt5_staff_id uuid,
+ADD COLUMN IF NOT EXISTS iptp1_date date,
+ADD COLUMN IF NOT EXISTS iptp1_staff_id uuid,
+ADD COLUMN IF NOT EXISTS iptp2_date date,
+ADD COLUMN IF NOT EXISTS iptp2_staff_id uuid,
+ADD COLUMN IF NOT EXISTS iptp3_date date,
+ADD COLUMN IF NOT EXISTS iptp3_staff_id uuid,
+ADD COLUMN IF NOT EXISTS expected_delivery_mode text,
+ADD COLUMN IF NOT EXISTS blood_donor_name text,
+ADD COLUMN IF NOT EXISTS blood_donor_phone text,
+ADD COLUMN IF NOT EXISTS emergency_transport_plan text;

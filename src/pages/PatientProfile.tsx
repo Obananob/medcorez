@@ -34,7 +34,6 @@ const PatientProfile = () => {
   const { organization } = useOrganization();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const navigate = useNavigate();
 
   const { data: patient, isLoading } = useQuery({
     queryKey: ["patient", id],
@@ -147,6 +146,9 @@ const PatientProfile = () => {
 
   const age = calculateAge(patient.dob);
 
+  // Check if patient is female for ANC tab display
+  const isFemalePatient = patient.gender?.toLowerCase() === "female";
+
   return (
     <div className="space-y-6">
       {/* Back Button & Actions */}
@@ -191,6 +193,41 @@ const PatientProfile = () => {
         </CardContent>
       </Card>
 
+      {/* Tab Navigation for Female Patients */}
+      {isFemalePatient ? (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="anc" className="gap-2">
+              <Baby className="h-4 w-4" />
+              ANC Journey
+            </TabsTrigger>
+            <TabsTrigger value="overview" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="anc" className="mt-6">
+            <ANCJourneyTab 
+              patientId={patient.id} 
+              patientName={`${patient.first_name} ${patient.last_name}`}
+              patientDob={patient.dob}
+            />
+          </TabsContent>
+
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            {renderOverviewContent()}
+          </TabsContent>
+        </Tabs>
+      ) : (
+        renderOverviewContent()
+      )}
+    </div>
+  );
+
+  function renderOverviewContent() {
+    return (
+      <>
       {/* Pinned Health Information */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Allergies - Pinned */}
@@ -473,8 +510,9 @@ const PatientProfile = () => {
           )}
         </CardContent>
       </Card>
-    </div>
-  );
+      </>
+    );
+  }
 };
 
 export default PatientProfile;

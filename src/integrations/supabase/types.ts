@@ -16,51 +16,111 @@ export type Database = {
     Tables: {
       anc_enrollments: {
         Row: {
+          blood_donor_name: string | null
+          blood_donor_phone: string | null
           blood_group: string | null
           created_at: string
           edd: string
+          emergency_transport_plan: string | null
           enrolled_at: string
+          expected_delivery_mode: string | null
           genotype: string | null
           gravida: number
           hiv_status: string | null
           id: string
+          iptp1_date: string | null
+          iptp1_staff_id: string | null
+          iptp2_date: string | null
+          iptp2_staff_id: string | null
+          iptp3_date: string | null
+          iptp3_staff_id: string | null
           is_active: boolean
           lmp: string
           organization_id: string
           para: number
           patient_id: string
+          tt1_date: string | null
+          tt1_staff_id: string | null
+          tt2_date: string | null
+          tt2_staff_id: string | null
+          tt3_date: string | null
+          tt3_staff_id: string | null
+          tt4_date: string | null
+          tt4_staff_id: string | null
+          tt5_date: string | null
+          tt5_staff_id: string | null
           updated_at: string
         }
         Insert: {
+          blood_donor_name?: string | null
+          blood_donor_phone?: string | null
           blood_group?: string | null
           created_at?: string
           edd: string
+          emergency_transport_plan?: string | null
           enrolled_at?: string
+          expected_delivery_mode?: string | null
           genotype?: string | null
           gravida?: number
           hiv_status?: string | null
           id?: string
+          iptp1_date?: string | null
+          iptp1_staff_id?: string | null
+          iptp2_date?: string | null
+          iptp2_staff_id?: string | null
+          iptp3_date?: string | null
+          iptp3_staff_id?: string | null
           is_active?: boolean
           lmp: string
           organization_id: string
           para?: number
           patient_id: string
+          tt1_date?: string | null
+          tt1_staff_id?: string | null
+          tt2_date?: string | null
+          tt2_staff_id?: string | null
+          tt3_date?: string | null
+          tt3_staff_id?: string | null
+          tt4_date?: string | null
+          tt4_staff_id?: string | null
+          tt5_date?: string | null
+          tt5_staff_id?: string | null
           updated_at?: string
         }
         Update: {
+          blood_donor_name?: string | null
+          blood_donor_phone?: string | null
           blood_group?: string | null
           created_at?: string
           edd?: string
+          emergency_transport_plan?: string | null
           enrolled_at?: string
+          expected_delivery_mode?: string | null
           genotype?: string | null
           gravida?: number
           hiv_status?: string | null
           id?: string
+          iptp1_date?: string | null
+          iptp1_staff_id?: string | null
+          iptp2_date?: string | null
+          iptp2_staff_id?: string | null
+          iptp3_date?: string | null
+          iptp3_staff_id?: string | null
           is_active?: boolean
           lmp?: string
           organization_id?: string
           para?: number
           patient_id?: string
+          tt1_date?: string | null
+          tt1_staff_id?: string | null
+          tt2_date?: string | null
+          tt2_staff_id?: string | null
+          tt3_date?: string | null
+          tt3_staff_id?: string | null
+          tt4_date?: string | null
+          tt4_staff_id?: string | null
+          tt5_date?: string | null
+          tt5_staff_id?: string | null
           updated_at?: string
         }
         Relationships: [
