@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
   Shield, 
   Activity, 
@@ -329,6 +330,69 @@ const Landing = () => {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <Badge className="mb-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  Our Story
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                  Built by a Medical Student Who Understood the Problem
+                </h2>
+                <div className="space-y-4 text-gray-600 leading-relaxed">
+                  <p>
+                    MedCore was born in a small Nigerian private clinic where chaos was the norm. 
+                    Paper folders disappeared. Patients waited hours. Revenue leaked through the cracks.
+                  </p>
+                  <p>
+                    As a medical student observing this daily, I asked: <em>"Why can't clinics have 
+                    the same technology that powers banks and fintech?"</em>
+                  </p>
+                  <p>
+                    So I built MedCore — a modern operating system specifically designed for the 
+                    Nigerian healthcare environment. No foreign templates. No assumptions that 
+                    don't work here. Just practical tools that solve real problems.
+                  </p>
+                  <p className="font-medium text-gray-900">
+                    Our mission is simple: Digitize every Nigerian clinic and protect every Naira 
+                    of revenue, one hospital at a time.
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl p-8 border border-blue-200">
+                  <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-blue-600 p-3 rounded-full">
+                        <Stethoscope className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">Founded in Nigeria</p>
+                        <p className="text-sm text-gray-500">For Nigerian Healthcare</p>
+                      </div>
+                    </div>
+                    <Separator className="bg-gray-200" />
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-blue-600">100%</p>
+                        <p className="text-sm text-gray-500">Local Focus</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-blue-600">24/7</p>
+                        <p className="text-sm text-gray-500">Support</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

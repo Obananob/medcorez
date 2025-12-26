@@ -32,10 +32,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const allMenuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "nurse", "receptionist", "pharmacist"] },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "nurse"] },
   { title: "Patients", url: "/patients", icon: Users, roles: ["admin", "doctor", "nurse", "receptionist"] },
-  { title: "Appointments", url: "/appointments", icon: Calendar, roles: ["admin", "nurse", "receptionist"] },
-  { title: "My Appointments", url: "/appointments", icon: Calendar, roles: ["doctor"] },
+  { title: "Appointments", url: "/appointments", icon: Calendar, roles: ["admin", "receptionist"] },
+  { title: "My Consultations", url: "/appointments", icon: Calendar, roles: ["doctor"] },
+  { title: "Triage", url: "/appointments", icon: Calendar, roles: ["nurse"] },
   { title: "Staff", url: "/staff", icon: Stethoscope, roles: ["admin"] },
   { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "pharmacist"] },
   { title: "Finance", url: "/finance", icon: DollarSign, roles: ["admin"] },
