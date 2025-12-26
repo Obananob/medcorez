@@ -14,12 +14,16 @@ import {
   Heart,
   Activity,
   Scale,
-  Ruler
+  Ruler,
+  Printer
 } from "lucide-react";
 import { differenceInYears, format } from "date-fns";
+import { generatePatientPDF } from "@/utils/generatePatientPDF";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
+  const { organization } = useOrganization();
   const navigate = useNavigate();
 
   const { data: patient, isLoading } = useQuery({
@@ -119,11 +123,20 @@ const PatientProfile = () => {
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <Button variant="ghost" onClick={() => navigate("/patients")}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Patients
-      </Button>
+      {/* Back Button & Actions */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={() => navigate("/patients")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Patients
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => generatePatientPDF(patient, medicalHistory || [], organization?.name)}
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Export PDF
+        </Button>
+      </div>
 
       {/* Patient Header */}
       <Card>
