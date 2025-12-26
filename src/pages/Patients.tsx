@@ -102,15 +102,24 @@ const Patients = () => {
     },
   });
 
-  // Generate MRN
-  const generateMRN = () => {
-    const digits = Math.floor(100000 + Math.random() * 900000);
-    return `MRN-${digits}`;
+  // Generate sequential MRN using RPC
+  const generateMRN = async (): Promise<string> => {
+    if (!profile?.organization_id) {
+      throw new Error("Organization ID not found");
+    }
+    
+    const { data, error } = await (supabase.rpc as any)("generate_mrn", {
+      org_id: profile.organization_id,
+    });
+    
+    if (error) throw error;
+    return data as string;
   };
 
   // Add patient mutation
   const addPatientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const mrn = await generateMRN();
       const { error } = await supabase.from("patients").insert({
         first_name: data.first_name,
         last_name: data.last_name,
@@ -120,7 +129,7 @@ const Patients = () => {
         emergency_contact: data.emergency_contact || null,
         allergies: data.allergies || null,
         avatar_url: data.avatar_url || null,
-        medical_record_number: generateMRN(),
+        medical_record_number: mrn,
         organization_id: profile?.organization_id,
       });
       if (error) throw error;

@@ -47,7 +47,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check } from "lucide-react";
+import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check, Download } from "lucide-react";
+import { useOrganization } from "@/hooks/useOrganization";
+import { generateLoginSlip } from "@/utils/generateLoginSlip";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { AvatarUpload } from "@/components/AvatarUpload";
@@ -93,6 +95,7 @@ const generatePassword = (): string => {
 const Staff = () => {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const { organization } = useOrganization();
   const isAdmin = profile?.role === "admin";
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -440,7 +443,24 @@ const Staff = () => {
               The staff member can use these credentials to log in. They should change their password after first login.
             </p>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (createdCredentials) {
+                  generateLoginSlip({
+                    hospitalName: organization?.name || "Hospital",
+                    staffName: createdCredentials.name,
+                    role: formData.role ? ROLES.find(r => r.value === formData.role)?.label || formData.role : "Staff",
+                    email: createdCredentials.email,
+                    temporaryPassword: createdCredentials.password,
+                  });
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Login Slip
+            </Button>
             <Button onClick={() => {
               setIsCredentialsDialogOpen(false);
               setCreatedCredentials(null);
