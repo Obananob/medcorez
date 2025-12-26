@@ -25,8 +25,15 @@ import {
   Calendar,
   DollarSign,
   Camera,
-  Image
+  Image,
+  AlertTriangle
 } from "lucide-react";
+import { 
+  getTemperatureStatus, 
+  getBPStatus, 
+  getHeartRateStatus,
+  calculateBMI 
+} from "@/utils/cdssUtils";
 import { PrescriptionCamera } from "@/components/PrescriptionCamera";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -263,8 +270,29 @@ const Consultation = () => {
 
   const vitals = appointment.vitals?.[0];
 
+  // CDSS: Get vital statuses for color coding
+  const tempStatus = vitals ? getTemperatureStatus(vitals.temperature) : null;
+  const bpStatus = vitals ? getBPStatus(vitals.blood_pressure_systolic, vitals.blood_pressure_diastolic) : null;
+  const hrStatus = vitals ? getHeartRateStatus(vitals.heart_rate) : null;
+  const bmiResult = vitals ? calculateBMI(vitals.weight_kg, vitals.height_cm) : null;
+
   return (
     <div className="space-y-6">
+      {/* CDSS: Allergy Warning Banner */}
+      {appointment.patients?.allergies && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-yellow-500/20 border-2 border-yellow-500/50">
+          <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+          <div>
+            <p className="font-bold text-yellow-700 dark:text-yellow-300 text-lg">
+              ⚠️ ALLERGY WARNING
+            </p>
+            <p className="text-yellow-600 dark:text-yellow-400 font-medium">
+              Patient has allergies: <span className="font-bold">{appointment.patients.allergies}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
@@ -338,36 +366,79 @@ const Consultation = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {vitals ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                    <Thermometer className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Temperature</p>
-                      <p className="font-semibold">{vitals.temperature || "—"}°C</p>
+            {vitals ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Temperature with CDSS */}
+                    <div className={`flex items-center gap-2 p-3 rounded-lg border ${tempStatus && tempStatus.level !== "normal" ? tempStatus.bgClass : "bg-muted/50 border-transparent"}`}>
+                      <Thermometer className={`h-5 w-5 ${tempStatus && tempStatus.level !== "normal" ? tempStatus.colorClass : "text-orange-500"}`} />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Temperature</p>
+                        <div className="flex items-center gap-2">
+                          <p className={`font-semibold ${tempStatus && tempStatus.level !== "normal" ? tempStatus.colorClass : ""}`}>
+                            {vitals.temperature || "—"}°C
+                          </p>
+                          {tempStatus && tempStatus.level !== "normal" && (
+                            <Badge variant="outline" className={`text-xs ${tempStatus.colorClass}`}>
+                              {tempStatus.label}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                    <Heart className="h-5 w-5 text-red-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Blood Pressure</p>
-                      <p className="font-semibold">
-                        {vitals.blood_pressure_systolic}/{vitals.blood_pressure_diastolic || "—"} mmHg
-                      </p>
+                    
+                    {/* Blood Pressure with CDSS */}
+                    <div className={`flex items-center gap-2 p-3 rounded-lg border ${bpStatus && bpStatus.level !== "normal" ? bpStatus.bgClass : "bg-muted/50 border-transparent"}`}>
+                      <Heart className={`h-5 w-5 ${bpStatus && bpStatus.level !== "normal" ? bpStatus.colorClass : "text-red-500"}`} />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Blood Pressure</p>
+                        <div className="flex items-center gap-2">
+                          <p className={`font-semibold ${bpStatus && bpStatus.level !== "normal" ? bpStatus.colorClass : ""}`}>
+                            {vitals.blood_pressure_systolic}/{vitals.blood_pressure_diastolic || "—"} mmHg
+                          </p>
+                          {bpStatus && bpStatus.level !== "normal" && (
+                            <Badge variant="outline" className={`text-xs ${bpStatus.colorClass}`}>
+                              ⚠️ {bpStatus.label}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                    <Heart className="h-5 w-5 text-pink-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Heart Rate</p>
-                      <p className="font-semibold">{vitals.heart_rate || "—"} bpm</p>
+                    
+                    {/* Heart Rate with CDSS */}
+                    <div className={`flex items-center gap-2 p-3 rounded-lg border ${hrStatus && hrStatus.level !== "normal" ? hrStatus.bgClass : "bg-muted/50 border-transparent"}`}>
+                      <Heart className={`h-5 w-5 ${hrStatus && hrStatus.level !== "normal" ? hrStatus.colorClass : "text-pink-500"}`} />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Heart Rate</p>
+                        <div className="flex items-center gap-2">
+                          <p className={`font-semibold ${hrStatus && hrStatus.level !== "normal" ? hrStatus.colorClass : ""}`}>
+                            {vitals.heart_rate || "—"} bpm
+                          </p>
+                          {hrStatus && hrStatus.level !== "normal" && (
+                            <Badge variant="outline" className={`text-xs ${hrStatus.colorClass}`}>
+                              {hrStatus.label}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                    <User className="h-5 w-5 text-blue-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Weight</p>
-                      <p className="font-semibold">{vitals.weight_kg || "—"} kg</p>
+                    
+                    {/* Weight/BMI with CDSS */}
+                    <div className={`flex items-center gap-2 p-3 rounded-lg border ${bmiResult && bmiResult.level !== "normal" ? (bmiResult.level === "critical" ? "bg-red-500/10 border-red-500/30" : "bg-orange-500/10 border-orange-500/30") : "bg-muted/50 border-transparent"}`}>
+                      <User className={`h-5 w-5 ${bmiResult ? bmiResult.colorClass : "text-blue-500"}`} />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Weight / BMI</p>
+                        <div className="flex items-center gap-2">
+                          <p className={`font-semibold ${bmiResult && bmiResult.level !== "normal" ? bmiResult.colorClass : ""}`}>
+                            {vitals.weight_kg || "—"} kg
+                          </p>
+                          {bmiResult && (
+                            <Badge variant="outline" className={`text-xs ${bmiResult.colorClass}`}>
+                              BMI: {bmiResult.value} ({bmiResult.category})
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
