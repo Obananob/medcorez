@@ -14,16 +14,10 @@ interface ReceiptData {
 }
 
 export const generateReceipt = (data: ReceiptData) => {
-  const printWindow = window.open("", "_blank", "width=400,height=600");
-  if (!printWindow) {
-    alert("Please allow pop-ups to print receipts");
-    return;
-  }
-
   const formattedAmount = `${data.currencySymbol}${data.amount.toLocaleString()}`;
   const formattedDate = format(data.date, "MMMM d, yyyy • h:mm a");
 
-  printWindow.document.write(`
+  const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -123,11 +117,6 @@ export const generateReceipt = (data: ReceiptData) => {
           font-weight: bold;
           margin-bottom: 5px;
         }
-        @media print {
-          body {
-            padding: 0;
-          }
-        }
       </style>
     </head>
     <body>
@@ -177,18 +166,22 @@ export const generateReceipt = (data: ReceiptData) => {
         <div>This is a computer-generated receipt.</div>
         <div>Powered by MedCore</div>
       </div>
-
-      <script>
-        window.onload = function() {
-          window.print();
-          setTimeout(function() {
-            window.close();
-          }, 500);
-        };
-      </script>
     </body>
     </html>
-  `);
+  `;
 
-  printWindow.document.close();
+  // Create a Blob with the HTML content
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  
+  // Create a download link
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Receipt-INV-${data.invoiceId.slice(0, 8).toUpperCase()}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Clean up the URL object
+  URL.revokeObjectURL(url);
 };
