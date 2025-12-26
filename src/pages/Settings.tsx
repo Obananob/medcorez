@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Building, Globe, Save, Loader2, Camera, ImageIcon } from "lucide-react";
+import { Settings as SettingsIcon, Building, Globe, Save, Loader2, Camera, ImageIcon, Moon, Sun } from "lucide-react";
 
 const COUNTRIES = [
   { code: "US", name: "United States", currency: "$" },
@@ -44,6 +46,7 @@ const TIMEZONES = [
 
 const Settings = () => {
   const { profile } = useAuth();
+  const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -349,6 +352,40 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium">Currency:</span> {formData.currency_symbol} (based on selected country)
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Appearance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                Appearance
+              </CardTitle>
+              <CardDescription>
+                Customize how MedCore looks on your device
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-3">
+                  {theme === "dark" ? (
+                    <Moon className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Sun className="h-5 w-5 text-primary" />
+                  )}
+                  <div>
+                    <p className="font-medium text-foreground">Dark Mode</p>
+                    <p className="text-sm text-muted-foreground">
+                      {theme === "dark" ? "Currently using dark theme" : "Currently using light theme"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
               </div>
             </CardContent>
           </Card>

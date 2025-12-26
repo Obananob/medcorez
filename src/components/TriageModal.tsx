@@ -14,6 +14,11 @@ import { Thermometer, Heart, Scale, Ruler, Activity, AlertTriangle } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { 
+  getTemperatureStatus, 
+  getBPStatus, 
+  calculateBMI 
+} from "@/utils/cdssUtils";
 
 interface TriageModalProps {
   open: boolean;
@@ -54,20 +59,20 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
     }
   }, [open]);
 
-  // Calculate BMI
-  const calculateBMI = () => {
-    const weight = parseFloat(vitals.weight);
-    const heightCm = parseFloat(vitals.height);
-    if (weight && heightCm) {
-      const heightM = heightCm / 100;
-      const bmi = weight / (heightM * heightM);
-      return bmi.toFixed(1);
-    }
-    return null;
-  };
+  // CDSS: Calculate BMI using utility
+  const bmiResult = calculateBMI(
+    vitals.weight ? parseFloat(vitals.weight) : null,
+    vitals.height ? parseFloat(vitals.height) : null
+  );
 
-  const bmi = calculateBMI();
-  const hasFever = parseFloat(vitals.temperature) > 38;
+  // CDSS: Get temperature status
+  const tempStatus = getTemperatureStatus(vitals.temperature ? parseFloat(vitals.temperature) : null);
+  
+  // CDSS: Get BP status
+  const bpStatus = getBPStatus(
+    vitals.bp_systolic ? parseInt(vitals.bp_systolic) : null,
+    vitals.bp_diastolic ? parseInt(vitals.bp_diastolic) : null
+  );
 
   const handleSaveVitals = async () => {
     if (!appointment || !profile?.organization_id) return;
@@ -129,12 +134,28 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Fever Alert */}
-          {hasFever && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <Badge variant="destructive">High Fever</Badge>
-              <span className="text-sm text-destructive">Temperature exceeds 38°C</span>
+          {/* CDSS Alerts */}
+          {(tempStatus && tempStatus.level !== "normal") && (
+            <div className={`flex items-center gap-2 p-3 rounded-lg border ${tempStatus.bgClass}`}>
+              <AlertTriangle className={`h-5 w-5 ${tempStatus.colorClass}`} />
+              <Badge className={tempStatus.level === "critical" ? "bg-red-600" : "bg-orange-500"}>
+                {tempStatus.label}
+              </Badge>
+              <span className={`text-sm ${tempStatus.colorClass}`}>
+                {tempStatus.level === "critical" ? "Immediate attention required" : "Monitor closely"}
+              </span>
+            </div>
+          )}
+          
+          {(bpStatus && bpStatus.level !== "normal") && (
+            <div className={`flex items-center gap-2 p-3 rounded-lg border ${bpStatus.bgClass}`}>
+              <AlertTriangle className={`h-5 w-5 ${bpStatus.colorClass}`} />
+              <Badge className={bpStatus.level === "critical" ? "bg-red-600" : "bg-orange-500"}>
+                {bpStatus.label}
+              </Badge>
+              <span className={`text-sm ${bpStatus.colorClass}`}>
+                {bpStatus.level === "critical" ? "Hypertensive urgency" : "Elevated blood pressure"}
+              </span>
             </div>
           )}
 
@@ -143,6 +164,11 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
             <Label className="flex items-center gap-2">
               <Thermometer className="h-4 w-4 text-muted-foreground" />
               Temperature (°C)
+              {tempStatus && tempStatus.level !== "normal" && (
+                <Badge variant="outline" className={tempStatus.colorClass}>
+                  {tempStatus.label}
+                </Badge>
+              )}
             </Label>
             <Input
               type="number"
@@ -150,6 +176,7 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
               placeholder="36.5"
               value={vitals.temperature}
               onChange={(e) => setVitals({ ...vitals, temperature: e.target.value })}
+              className={tempStatus && tempStatus.level !== "normal" ? `border-2 ${tempStatus.level === "critical" ? "border-red-500" : "border-orange-500"}` : ""}
             />
           </div>
 
@@ -158,6 +185,11 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
             <Label className="flex items-center gap-2">
               <Heart className="h-4 w-4 text-muted-foreground" />
               Blood Pressure (mmHg)
+              {bpStatus && bpStatus.level !== "normal" && (
+                <Badge variant="outline" className={bpStatus.colorClass}>
+                  {bpStatus.label}
+                </Badge>
+              )}
             </Label>
             <div className="flex gap-2 items-center">
               <Input
@@ -165,6 +197,7 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
                 placeholder="120"
                 value={vitals.bp_systolic}
                 onChange={(e) => setVitals({ ...vitals, bp_systolic: e.target.value })}
+                className={bpStatus && bpStatus.level !== "normal" ? `border-2 ${bpStatus.level === "critical" ? "border-red-500" : "border-orange-500"}` : ""}
               />
               <span className="text-muted-foreground">/</span>
               <Input
@@ -172,6 +205,7 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
                 placeholder="80"
                 value={vitals.bp_diastolic}
                 onChange={(e) => setVitals({ ...vitals, bp_diastolic: e.target.value })}
+                className={bpStatus && bpStatus.level !== "normal" ? `border-2 ${bpStatus.level === "critical" ? "border-red-500" : "border-orange-500"}` : ""}
               />
             </div>
           </div>
@@ -219,23 +253,23 @@ export function TriageModal({ open, onOpenChange, appointment, onSuccess }: Tria
             </div>
           </div>
 
-          {/* Auto BMI Display */}
-          {bmi && (
-            <div className="p-3 rounded-lg bg-muted">
+          {/* Auto BMI Display with CDSS color coding */}
+          {bmiResult && (
+            <div className={`p-3 rounded-lg border ${
+              bmiResult.level === "critical" 
+                ? "bg-red-500/10 border-red-500/30" 
+                : bmiResult.level === "warning" 
+                  ? "bg-orange-500/10 border-orange-500/30"
+                  : "bg-green-500/10 border-green-500/30"
+            }`}>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Calculated BMI</span>
-                <Badge variant="outline" className="text-lg font-semibold">
-                  {bmi}
+                <Badge variant="outline" className={`text-lg font-semibold ${bmiResult.colorClass}`}>
+                  {bmiResult.value}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {parseFloat(bmi) < 18.5
-                  ? "Underweight"
-                  : parseFloat(bmi) < 25
-                  ? "Normal weight"
-                  : parseFloat(bmi) < 30
-                  ? "Overweight"
-                  : "Obese"}
+              <p className={`text-sm mt-1 font-medium ${bmiResult.colorClass}`}>
+                {bmiResult.category}
               </p>
             </div>
           )}

@@ -11,14 +11,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { TriageModal } from "@/components/TriageModal";
+import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
+import { PharmacistDashboard } from "@/components/dashboard/PharmacistDashboard";
+import { ReceptionistDashboard } from "@/components/dashboard/ReceptionistDashboard";
 
 const Dashboard = () => {
   const today = new Date();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isDoctor = profile?.role === "doctor";
-  const isNurse = profile?.role === "nurse";
+  const userRole = profile?.role || "admin";
   
   // Triage modal state
   const [triageOpen, setTriageOpen] = useState(false);
@@ -34,7 +36,7 @@ const Dashboard = () => {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !isDoctor,
+    enabled: userRole === "admin",
   });
 
   // Fetch today's appointments count (admin view)
@@ -49,7 +51,7 @@ const Dashboard = () => {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !isDoctor,
+    enabled: userRole === "admin",
   });
 
   // Fetch active staff count (admin view)
@@ -62,7 +64,7 @@ const Dashboard = () => {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !isDoctor,
+    enabled: userRole === "admin",
   });
 
   // Fetch today's appointments with patient and doctor info (admin view)
@@ -86,7 +88,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !isDoctor,
+    enabled: userRole === "admin",
   });
 
   // Fetch upcoming appointments with patient info (admin view)
@@ -109,32 +111,31 @@ const Dashboard = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !isDoctor && !isNurse,
+    enabled: userRole === "admin",
   });
 
-  // Doctor's appointments (waiting patients) - doctor_id references profiles.id
-  const { data: doctorAppointments, isLoading: loadingDoctorApts } = useQuery({
-    queryKey: ["doctor-appointments", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select(`
-          id,
-          appointment_date,
-          reason_for_visit,
-          status,
-          patients (id, first_name, last_name, dob, gender, phone)
-        `)
-        .eq("doctor_id", user?.id)
-        .in("status", ["waiting", "in_progress"])
-        .gte("appointment_date", startOfDay(today).toISOString())
-        .lte("appointment_date", endOfDay(today).toISOString())
-        .order("appointment_date", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: isDoctor && !!user?.id,
-  });
+  // Render role-based dashboard using switch-case
+  const renderDashboard = () => {
+    switch (userRole) {
+      case "doctor":
+        return <DoctorDashboard />;
+      case "pharmacist":
+        return <PharmacistDashboard />;
+      case "receptionist":
+        return <ReceptionistDashboard />;
+      case "nurse":
+        // Nurse dashboard is rendered inline below
+        return null;
+      default:
+        // Admin dashboard is rendered inline below
+        return null;
+    }
+  };
+
+  // Return specialized dashboards for doctor, pharmacist, receptionist
+  if (userRole === "doctor" || userRole === "pharmacist" || userRole === "receptionist") {
+    return renderDashboard();
+  }
 
   // Start consultation - update status to in_progress
   const startConsultation = async (appointmentId: string) => {
@@ -184,9 +185,8 @@ const Dashboard = () => {
         return new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
       });
     },
-    enabled: isNurse,
+    enabled: userRole === "nurse",
   });
-
   const calculateAge = (dob: string | null) => {
     if (!dob) return "N/A";
     return differenceInYears(new Date(), new Date(dob));
@@ -242,7 +242,7 @@ const Dashboard = () => {
   };
 
   // Nurse Dashboard View
-  if (isNurse) {
+  if (userRole === "nurse") {
     return (
       <div className="space-y-6">
         <div>
@@ -400,140 +400,6 @@ const Dashboard = () => {
           appointment={selectedAppointment}
           onSuccess={handleTriageSuccess}
         />
-      </div>
-    );
-  }
-
-  // Doctor Dashboard View
-  if (isDoctor) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <Stethoscope className="h-8 w-8 text-primary" />
-            My Workspace
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back, Dr. {profile?.first_name}! Here are your patients waiting.
-          </p>
-        </div>
-
-        {/* Doctor Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Waiting Patients
-              </CardTitle>
-              <Clock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {doctorAppointments?.length || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Today's Date
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {format(today, "MMM d")}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Current Time
-              </CardTitle>
-              <Clock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {format(today, "h:mm a")}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Waiting Patients List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              My Patients Waiting
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingDoctorApts ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-40" />
-                      <Skeleton className="h-4 w-32" />
-                    </div>
-                    <Skeleton className="h-10 w-32" />
-                  </div>
-                ))}
-              </div>
-            ) : doctorAppointments && doctorAppointments.length > 0 ? (
-              <div className="space-y-4">
-                {doctorAppointments.map((apt) => (
-                  <div
-                    key={apt.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {apt.patients?.first_name} {apt.patients?.last_name}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{calculateAge(apt.patients?.dob)} yrs</span>
-                          <span>•</span>
-                          <span className="capitalize">{apt.patients?.gender || "N/A"}</span>
-                          <span>•</span>
-                          <span>{format(new Date(apt.appointment_date), "h:mm a")}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {apt.reason_for_visit || "General Consultation"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {apt.status === "waiting" ? (
-                        <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Ready for Consult</Badge>
-                      ) : (
-                        <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">In Progress</Badge>
-                      )}
-                      <Button onClick={() => startConsultation(apt.id)}>
-                        <Stethoscope className="h-4 w-4 mr-2" />
-                        {apt.status === "in_progress" ? "Continue" : "Start Consultation"}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No patients waiting</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Your queue is clear. Great job!
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     );
   }
