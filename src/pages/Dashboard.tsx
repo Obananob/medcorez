@@ -14,6 +14,7 @@ import { TriageModal } from "@/components/TriageModal";
 import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
 import { PharmacistDashboard } from "@/components/dashboard/PharmacistDashboard";
 import { ReceptionistDashboard } from "@/components/dashboard/ReceptionistDashboard";
+import { LabDashboard } from "@/components/dashboard/LabDashboard";
 
 const Dashboard = () => {
   const today = new Date();
@@ -123,6 +124,8 @@ const Dashboard = () => {
         return <PharmacistDashboard />;
       case "receptionist":
         return <ReceptionistDashboard />;
+      case "lab_scientist":
+        return <LabDashboard />;
       case "nurse":
         // Nurse dashboard is rendered inline below
         return null;
@@ -132,8 +135,8 @@ const Dashboard = () => {
     }
   };
 
-  // Return specialized dashboards for doctor, pharmacist, receptionist
-  if (userRole === "doctor" || userRole === "pharmacist" || userRole === "receptionist") {
+  // Return specialized dashboards for doctor, pharmacist, receptionist, lab_scientist
+  if (userRole === "doctor" || userRole === "pharmacist" || userRole === "receptionist" || userRole === "lab_scientist") {
     return renderDashboard();
   }
 
