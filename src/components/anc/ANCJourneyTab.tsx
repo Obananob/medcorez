@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +22,15 @@ import {
   Heart,
   Activity,
   Scale,
-  AlertCircle,
   Droplets,
 } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { ANCEnrollmentModal } from "./ANCEnrollmentModal";
 import { ANCVisitModal } from "./ANCVisitModal";
+import { ANCCharts } from "./ANCCharts";
+import { ANCImmunizationCard } from "./ANCImmunizationCard";
+import { ANCBirthPlanCard } from "./ANCBirthPlanCard";
+import { ANCRiskBadge, calculateHighRiskFactors } from "./ANCRiskBadge";
 import {
   calculateGestationalAge,
   formatGestationalAge,
@@ -40,9 +43,10 @@ import { getBPStatus } from "@/utils/cdssUtils";
 interface ANCJourneyTabProps {
   patientId: string;
   patientName: string;
+  patientDob?: string | null;
 }
 
-export function ANCJourneyTab({ patientId, patientName }: ANCJourneyTabProps) {
+export function ANCJourneyTab({ patientId, patientName, patientDob }: ANCJourneyTabProps) {
   const [showEnrollment, setShowEnrollment] = useState(false);
   const [showVisit, setShowVisit] = useState(false);
 
@@ -119,6 +123,13 @@ export function ANCJourneyTab({ patientId, patientName }: ANCJourneyTabProps) {
   const daysToDelivery = calculateDaysToDelivery(eddDate);
   const trimester = getTrimester(gestationalAge.weeks);
 
+  // Calculate risk factors
+  const riskFactors = calculateHighRiskFactors({
+    patientDob,
+    gravida: enrollment.gravida,
+    visits: visits || [],
+  });
+
   const getStatusColor = (level: "normal" | "warning" | "critical") => {
     switch (level) {
       case "normal": return "text-green-600";
@@ -129,6 +140,13 @@ export function ANCJourneyTab({ patientId, patientName }: ANCJourneyTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* High Risk Badge */}
+      {riskFactors.length > 0 && (
+        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+          <ANCRiskBadge riskFactors={riskFactors} showDetails />
+        </div>
+      )}
+
       {/* Pregnancy Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/30 dark:to-pink-900/20 border-pink-200 dark:border-pink-800">
@@ -217,6 +235,37 @@ export function ANCJourneyTab({ patientId, patientName }: ANCJourneyTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* ANC Charts */}
+      {visits && visits.length > 0 && (
+        <ANCCharts visits={visits} />
+      )}
+
+      {/* Immunization & Prevention */}
+      <ANCImmunizationCard 
+        enrollmentId={enrollment.id}
+        immunizations={{
+          tt1_date: (enrollment as any).tt1_date,
+          tt2_date: (enrollment as any).tt2_date,
+          tt3_date: (enrollment as any).tt3_date,
+          tt4_date: (enrollment as any).tt4_date,
+          tt5_date: (enrollment as any).tt5_date,
+          iptp1_date: (enrollment as any).iptp1_date,
+          iptp2_date: (enrollment as any).iptp2_date,
+          iptp3_date: (enrollment as any).iptp3_date,
+        }}
+      />
+
+      {/* Birth Plan */}
+      <ANCBirthPlanCard 
+        enrollmentId={enrollment.id}
+        birthPlan={{
+          expected_delivery_mode: (enrollment as any).expected_delivery_mode,
+          blood_donor_name: (enrollment as any).blood_donor_name,
+          blood_donor_phone: (enrollment as any).blood_donor_phone,
+          emergency_transport_plan: (enrollment as any).emergency_transport_plan,
+        }}
+      />
 
       {/* Visits History */}
       <Card>
