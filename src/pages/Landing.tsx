@@ -1,12 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Activity, CreditCard, Cross, Menu, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Shield, Activity, CreditCard, Cross, Menu, X, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { FeedbackModal } from "@/components/FeedbackModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const Landing = () => {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const navigate = useNavigate();
+
+  // Check for existing session and redirect authenticated users to dashboard
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // User is authenticated, redirect to dashboard
+          navigate("/dashboard", { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkSession();
+
+    // Also listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        navigate("/dashboard", { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-secondary to-background">
+        <div className="flex flex-col items-center gap-4">
+          <Cross className="h-12 w-12 text-primary animate-pulse" strokeWidth={2.5} />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary to-background flex flex-col">
