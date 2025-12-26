@@ -22,6 +22,7 @@ import Consultation from "./pages/Consultation";
 import Inventory from "./pages/Inventory";
 import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
+import LabWorkspace from "./pages/LabWorkspace";
 import { ProtectedLayout } from "./components/ProtectedLayout";
 
 const App = () => (
@@ -123,6 +124,16 @@ const App = () => (
                   <ProtectedRoute>
                     <ProtectedLayout>
                       <Settings />
+                    </ProtectedLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab-workspace"
+                element={
+                  <ProtectedRoute>
+                    <ProtectedLayout>
+                      <LabWorkspace />
                     </ProtectedLayout>
                   </ProtectedRoute>
                 }

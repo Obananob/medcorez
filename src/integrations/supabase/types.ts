@@ -226,6 +226,81 @@ export type Database = {
           },
         ]
       }
+      lab_requests: {
+        Row: {
+          appointment_id: string | null
+          category: string
+          collected_by: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          findings: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          patient_id: string
+          reference_range: string | null
+          requesting_doctor_id: string | null
+          sample_collected_at: string | null
+          status: string
+          test_name: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          category?: string
+          collected_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          findings?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          patient_id: string
+          reference_range?: string | null
+          requesting_doctor_id?: string | null
+          sample_collected_at?: string | null
+          status?: string
+          test_name: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          category?: string
+          collected_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          findings?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          patient_id?: string
+          reference_range?: string | null
+          requesting_doctor_id?: string | null
+          sample_collected_at?: string | null
+          status?: string
+          test_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_requests_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_requests_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           address: string | null
@@ -549,7 +624,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "doctor" | "nurse" | "receptionist" | "pharmacist"
+      app_role:
+        | "admin"
+        | "doctor"
+        | "nurse"
+        | "receptionist"
+        | "pharmacist"
+        | "lab_scientist"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -677,7 +758,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "doctor", "nurse", "receptionist", "pharmacist"],
+      app_role: [
+        "admin",
+        "doctor",
+        "nurse",
+        "receptionist",
+        "pharmacist",
+        "lab_scientist",
+      ],
     },
   },
 } as const

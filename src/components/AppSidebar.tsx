@@ -9,7 +9,8 @@ import {
   LogOut,
   Settings,
   Pill,
-  Download
+  Download,
+  FlaskConical
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -32,11 +33,12 @@ import {
 } from "@/components/ui/sidebar";
 
 const allMenuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "nurse"] },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "nurse", "lab_scientist"] },
   { title: "Patients", url: "/patients", icon: Users, roles: ["admin", "doctor", "nurse", "receptionist"] },
   { title: "Appointments", url: "/appointments", icon: Calendar, roles: ["admin", "receptionist"] },
   { title: "My Consultations", url: "/appointments", icon: Calendar, roles: ["doctor"] },
   { title: "Triage", url: "/appointments", icon: Calendar, roles: ["nurse"] },
+  { title: "Lab Workspace", url: "/lab-workspace", icon: FlaskConical, roles: ["admin", "lab_scientist"] },
   { title: "Staff", url: "/staff", icon: Stethoscope, roles: ["admin"] },
   { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "pharmacist"] },
   { title: "Finance", url: "/finance", icon: DollarSign, roles: ["admin"] },
