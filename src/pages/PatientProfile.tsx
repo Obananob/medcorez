@@ -15,11 +15,15 @@ import {
   Activity,
   Scale,
   Ruler,
-  Printer
+  Printer,
+  AlertTriangle,
+  Pin,
+  Image
 } from "lucide-react";
 import { differenceInYears, format } from "date-fns";
 import { generatePatientPDF } from "@/utils/generatePatientPDF";
 import { useOrganization } from "@/hooks/useOrganization";
+import { VitalsChart } from "@/components/VitalsChart";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +44,7 @@ const PatientProfile = () => {
     enabled: !!id,
   });
 
-  // Fetch patient's medical history (appointments with vitals)
+  // Fetch patient's medical history (appointments with vitals and prescriptions)
   const { data: medicalHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ["patient-history", id],
     queryFn: async () => {
@@ -61,6 +65,14 @@ const PatientProfile = () => {
             heart_rate,
             weight_kg,
             height_cm
+          ),
+          prescriptions (
+            id,
+            medicine_name,
+            dosage,
+            frequency,
+            duration,
+            prescription_image_url
           )
         `)
         .eq("patient_id", id)
@@ -96,6 +108,14 @@ const PatientProfile = () => {
     const heightM = height / 100;
     return (weight / (heightM * heightM)).toFixed(1);
   };
+
+  // Prepare data for vitals chart
+  const vitalsChartData = medicalHistory?.filter(v => v.vitals?.[0])?.map(visit => ({
+    date: visit.appointment_date,
+    systolic: visit.vitals?.[0]?.blood_pressure_systolic,
+    diastolic: visit.vitals?.[0]?.blood_pressure_diastolic,
+    weight: visit.vitals?.[0]?.weight_kg,
+  })) || [];
 
   if (isLoading) {
     return (
@@ -165,6 +185,60 @@ const PatientProfile = () => {
         </CardContent>
       </Card>
 
+      {/* Pinned Health Information */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Allergies - Pinned */}
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <Pin className="h-4 w-4" />
+              <AlertTriangle className="h-4 w-4" />
+              Allergies
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {patient.allergies ? (
+              <div className="flex flex-wrap gap-2">
+                {patient.allergies.split(",").map((allergy, i) => (
+                  <Badge key={i} variant="destructive" className="text-sm">
+                    {allergy.trim()}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No known allergies</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Chronic Conditions - Pinned */}
+        <Card className="border-orange-500/50 bg-orange-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-orange-600">
+              <Pin className="h-4 w-4" />
+              <Activity className="h-4 w-4" />
+              Chronic Conditions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(patient as any).chronic_conditions ? (
+              <div className="flex flex-wrap gap-2">
+                {(patient as any).chronic_conditions.split(",").map((condition: string, i: number) => (
+                  <Badge key={i} variant="outline" className="text-sm border-orange-500 text-orange-600">
+                    {condition.trim()}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No chronic conditions recorded</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Vitals Chart */}
+      <VitalsChart data={vitalsChartData} />
+
       {/* Patient Details */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -212,7 +286,7 @@ const PatientProfile = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Medical Information
+              Medical Summary
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -221,10 +295,6 @@ const PatientProfile = () => {
               <span className="font-mono font-medium">
                 {patient.medical_record_number || "-"}
               </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Allergies</span>
-              <span className="font-medium">{patient.allergies || "None recorded"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Visits</span>
@@ -240,12 +310,12 @@ const PatientProfile = () => {
         </Card>
       </div>
 
-      {/* Medical History */}
+      {/* Medical History Timeline */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Medical History
+            Visit Timeline
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -256,107 +326,135 @@ const PatientProfile = () => {
               ))}
             </div>
           ) : medicalHistory && medicalHistory.length > 0 ? (
-            <div className="space-y-4">
-              {medicalHistory.map((visit) => {
-                const vitals = visit.vitals?.[0];
-                const bmi = vitals ? calculateBMI(vitals.weight_kg, vitals.height_cm) : null;
-                
-                return (
-                  <div
-                    key={visit.id}
-                    className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors"
-                  >
-                    {/* Visit Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {format(new Date(visit.appointment_date), "MMMM d, yyyy 'at' h:mm a")}
-                        </span>
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+              
+              <div className="space-y-6">
+                {medicalHistory.map((visit, index) => {
+                  const vitals = visit.vitals?.[0];
+                  const prescriptions = visit.prescriptions || [];
+                  const bmi = vitals ? calculateBMI(vitals.weight_kg, vitals.height_cm) : null;
+                  const prescriptionImage = prescriptions.find(p => (p as any).prescription_image_url)?.prescription_image_url;
+                  
+                  return (
+                    <div key={visit.id} className="relative pl-10">
+                      {/* Timeline dot */}
+                      <div className={`absolute left-2.5 top-2 h-3 w-3 rounded-full border-2 ${
+                        visit.status === "completed" 
+                          ? "bg-green-500 border-green-500" 
+                          : "bg-background border-muted-foreground"
+                      }`} />
+                      
+                      <div className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors">
+                        {/* Visit Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium">
+                              {format(new Date(visit.appointment_date), "MMMM d, yyyy")}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(visit.appointment_date), "h:mm a")}
+                            </span>
+                          </div>
+                          {getStatusBadge(visit.status)}
+                        </div>
+
+                        {/* Reason for Visit */}
+                        {visit.reason_for_visit && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Reason: </span>
+                            <span>{visit.reason_for_visit}</span>
+                          </div>
+                        )}
+
+                        {/* Diagnosis */}
+                        {visit.diagnosis && (
+                          <div className="text-sm bg-primary/5 p-2 rounded">
+                            <span className="text-muted-foreground font-medium">Diagnosis: </span>
+                            <span>{visit.diagnosis}</span>
+                          </div>
+                        )}
+
+                        {/* Prescription Image Thumbnail */}
+                        {prescriptionImage && (
+                          <a 
+                            href={prescriptionImage as string} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                          >
+                            <Image className="h-4 w-4" />
+                            View Prescription Image
+                          </a>
+                        )}
+
+                        {/* Vitals */}
+                        {vitals && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t">
+                            {vitals.temperature && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Thermometer className="h-4 w-4 text-orange-500" />
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Temp</p>
+                                  <p className="font-medium">{vitals.temperature}°C</p>
+                                </div>
+                              </div>
+                            )}
+                            {(vitals.blood_pressure_systolic || vitals.blood_pressure_diastolic) && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Activity className="h-4 w-4 text-red-500" />
+                                <div>
+                                  <p className="text-muted-foreground text-xs">BP</p>
+                                  <p className="font-medium">
+                                    {vitals.blood_pressure_systolic || "-"}/{vitals.blood_pressure_diastolic || "-"}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                            {vitals.heart_rate && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Heart className="h-4 w-4 text-pink-500" />
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Heart Rate</p>
+                                  <p className="font-medium">{vitals.heart_rate} bpm</p>
+                                </div>
+                              </div>
+                            )}
+                            {vitals.weight_kg && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Scale className="h-4 w-4 text-blue-500" />
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Weight</p>
+                                  <p className="font-medium">{vitals.weight_kg} kg</p>
+                                </div>
+                              </div>
+                            )}
+                            {vitals.height_cm && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Ruler className="h-4 w-4 text-green-500" />
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Height</p>
+                                  <p className="font-medium">{vitals.height_cm} cm</p>
+                                </div>
+                              </div>
+                            )}
+                            {bmi && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Activity className="h-4 w-4 text-purple-500" />
+                                <div>
+                                  <p className="text-muted-foreground text-xs">BMI</p>
+                                  <p className="font-medium">{bmi}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {getStatusBadge(visit.status)}
                     </div>
-
-                    {/* Reason for Visit */}
-                    {visit.reason_for_visit && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Reason: </span>
-                        <span>{visit.reason_for_visit}</span>
-                      </div>
-                    )}
-
-                    {/* Diagnosis */}
-                    {visit.diagnosis && (
-                      <div className="text-sm bg-primary/5 p-2 rounded">
-                        <span className="text-muted-foreground font-medium">Diagnosis: </span>
-                        <span>{visit.diagnosis}</span>
-                      </div>
-                    )}
-
-                    {/* Vitals */}
-                    {vitals && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t">
-                        {vitals.temperature && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Thermometer className="h-4 w-4 text-orange-500" />
-                            <div>
-                              <p className="text-muted-foreground text-xs">Temp</p>
-                              <p className="font-medium">{vitals.temperature}°C</p>
-                            </div>
-                          </div>
-                        )}
-                        {(vitals.blood_pressure_systolic || vitals.blood_pressure_diastolic) && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Activity className="h-4 w-4 text-red-500" />
-                            <div>
-                              <p className="text-muted-foreground text-xs">BP</p>
-                              <p className="font-medium">
-                                {vitals.blood_pressure_systolic || "-"}/{vitals.blood_pressure_diastolic || "-"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {vitals.heart_rate && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Heart className="h-4 w-4 text-pink-500" />
-                            <div>
-                              <p className="text-muted-foreground text-xs">Heart Rate</p>
-                              <p className="font-medium">{vitals.heart_rate} bpm</p>
-                            </div>
-                          </div>
-                        )}
-                        {vitals.weight_kg && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Scale className="h-4 w-4 text-blue-500" />
-                            <div>
-                              <p className="text-muted-foreground text-xs">Weight</p>
-                              <p className="font-medium">{vitals.weight_kg} kg</p>
-                            </div>
-                          </div>
-                        )}
-                        {vitals.height_cm && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Ruler className="h-4 w-4 text-green-500" />
-                            <div>
-                              <p className="text-muted-foreground text-xs">Height</p>
-                              <p className="font-medium">{vitals.height_cm} cm</p>
-                            </div>
-                          </div>
-                        )}
-                        {bmi && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Activity className="h-4 w-4 text-purple-500" />
-                            <div>
-                              <p className="text-muted-foreground text-xs">BMI</p>
-                              <p className="font-medium">{bmi}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">

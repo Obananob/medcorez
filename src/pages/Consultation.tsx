@@ -23,8 +23,11 @@ import {
   Pill,
   Search,
   Calendar,
-  DollarSign
+  DollarSign,
+  Camera,
+  Image
 } from "lucide-react";
+import { PrescriptionCamera } from "@/components/PrescriptionCamera";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/hooks/useOrganization";
 import { format, differenceInYears } from "date-fns";
@@ -48,6 +51,7 @@ interface Prescription {
   frequency: string;
   duration: string;
   price?: number;
+  image_url?: string;
 }
 
 const Consultation = () => {
@@ -61,6 +65,7 @@ const Consultation = () => {
   const [doctorNotes, setDoctorNotes] = useState("");
   const [consultationFee, setConsultationFee] = useState("");
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [prescriptionImageUrl, setPrescriptionImageUrl] = useState<string | null>(null);
   const [medicineOpen, setMedicineOpen] = useState(false);
   const [medicineSearch, setMedicineSearch] = useState("");
   const [newPrescription, setNewPrescription] = useState<Prescription>({
@@ -152,18 +157,31 @@ const Consultation = () => {
       if (aptError) throw aptError;
 
       // Insert prescriptions
-      if (prescriptions.length > 0) {
-        const prescriptionData = prescriptions.map((p) => ({
+      if (prescriptions.length > 0 || prescriptionImageUrl) {
+        const prescriptionData = prescriptions.map((p, index) => ({
           appointment_id: appointmentId,
           organization_id: profile.organization_id,
           medicine_name: p.medicine_name,
           dosage: p.dosage,
           frequency: p.frequency,
           duration: p.duration,
+          prescription_image_url: index === 0 ? prescriptionImageUrl : null,
         }));
 
-        const { error: prescError } = await supabase
-          .from("prescriptions")
+        // If only image, no typed prescriptions
+        if (prescriptionData.length === 0 && prescriptionImageUrl) {
+          prescriptionData.push({
+            appointment_id: appointmentId,
+            organization_id: profile.organization_id,
+            medicine_name: "See attached image",
+            dosage: "",
+            frequency: "",
+            duration: "",
+            prescription_image_url: prescriptionImageUrl,
+          });
+        }
+
+        const { error: prescError } = await (supabase.from("prescriptions") as any)
           .insert(prescriptionData);
 
         if (prescError) throw prescError;
@@ -437,10 +455,42 @@ const Consultation = () => {
 
           {/* Prescriptions */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle>Prescription</CardTitle>
+              {profile?.organization_id && appointmentId && (
+                <PrescriptionCamera
+                  organizationId={profile.organization_id}
+                  appointmentId={appointmentId}
+                  onCapture={(url) => setPrescriptionImageUrl(url)}
+                />
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Prescription Image Preview */}
+              {prescriptionImageUrl && (
+                <div className="relative inline-block">
+                  <a href={prescriptionImageUrl} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={prescriptionImageUrl}
+                      alt="Prescription"
+                      className="h-20 w-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6 bg-destructive text-destructive-foreground rounded-full"
+                    onClick={() => setPrescriptionImageUrl(null)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Image className="h-3 w-3" />
+                    Prescription attached
+                  </div>
+                </div>
+              )}
+
               {/* Added prescriptions */}
               {prescriptions.length > 0 && (
                 <div className="space-y-2">

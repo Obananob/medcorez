@@ -266,6 +266,7 @@ export type Database = {
         Row: {
           allergies: string | null
           avatar_url: string | null
+          chronic_conditions: string | null
           created_at: string
           dob: string | null
           emergency_contact: string | null
@@ -280,6 +281,7 @@ export type Database = {
         Insert: {
           allergies?: string | null
           avatar_url?: string | null
+          chronic_conditions?: string | null
           created_at?: string
           dob?: string | null
           emergency_contact?: string | null
@@ -294,6 +296,7 @@ export type Database = {
         Update: {
           allergies?: string | null
           avatar_url?: string | null
+          chronic_conditions?: string | null
           created_at?: string
           dob?: string | null
           emergency_contact?: string | null
@@ -327,6 +330,7 @@ export type Database = {
           medicine_name: string
           notes: string | null
           organization_id: string
+          prescription_image_url: string | null
         }
         Insert: {
           appointment_id: string
@@ -339,6 +343,7 @@ export type Database = {
           medicine_name: string
           notes?: string | null
           organization_id: string
+          prescription_image_url?: string | null
         }
         Update: {
           appointment_id?: string
@@ -351,6 +356,7 @@ export type Database = {
           medicine_name?: string
           notes?: string | null
           organization_id?: string
+          prescription_image_url?: string | null
         }
         Relationships: [
           {
