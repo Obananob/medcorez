@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/hooks/usePlan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +43,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { differenceInYears } from "date-fns";
 import { PatientForm, PatientFormData } from "@/components/PatientForm";
+import { UpgradeModal } from "@/components/plan/UpgradeModal";
+import { PlanBanner } from "@/components/plan/PlanBanner";
 
 interface Patient {
   id: string;
@@ -64,6 +67,7 @@ const Patients = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deletePatient, setDeletePatient] = useState<Patient | null>(null);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const [formData, setFormData] = useState<PatientFormData>({
     first_name: "",
@@ -79,7 +83,27 @@ const Patients = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const isAdmin = profile?.role === "admin";
+  const { 
+    isAdmin, 
+    canAddPatient, 
+    isPatientLimitReached, 
+    remainingPatients,
+    isFreemium,
+    patientLimit 
+  } = usePlan();
+
+  const handleAddPatientClick = () => {
+    if (!canAddPatient()) {
+      if (isAdmin) {
+        setShowUpgradeModal(true);
+      } else {
+        toast.error("Patient limit reached. Contact Admin to upgrade.");
+      }
+      return;
+    }
+    resetForm();
+    setIsAddDialogOpen(true);
+  };
 
   // Fetch patients
   const { data: patients, isLoading } = useQuery({
@@ -137,6 +161,7 @@ const Patients = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-patients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-count"] });
       toast.success("Patient added successfully");
       setIsAddDialogOpen(false);
       resetForm();
@@ -185,6 +210,7 @@ const Patients = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-patients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-count"] });
       toast.success("Patient deleted");
       setDeletePatient(null);
     },
@@ -255,17 +281,48 @@ const Patients = () => {
 
   return (
     <div className="space-y-6">
+      {/* Plan Banners */}
+      {isFreemium && isPatientLimitReached && (
+        <PlanBanner
+          type="patient_limit_reached"
+          isAdmin={isAdmin}
+          onUpgradeClick={() => setShowUpgradeModal(true)}
+        />
+      )}
+      {isFreemium && !isPatientLimitReached && remainingPatients <= 10 && (
+        <PlanBanner
+          type="patient_limit_warning"
+          remainingPatients={remainingPatients}
+          isAdmin={isAdmin}
+          onUpgradeClick={() => setShowUpgradeModal(true)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Patients</h1>
-          <p className="text-muted-foreground mt-1">Manage your patient records</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your patient records
+            {isFreemium && (
+              <span className="ml-2 text-xs">
+                ({remainingPatients} of {patientLimit} slots remaining)
+              </span>
+            )}
+          </p>
         </div>
 
-        <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
+        <Button onClick={handleAddPatientClick}>
           <Plus className="h-4 w-4 mr-2" />
           Add Patient
         </Button>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        reason="patient_limit"
+      />
 
       {/* Add Patient Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

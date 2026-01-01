@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -10,7 +11,8 @@ import {
   Settings,
   Pill,
   Download,
-  FlaskConical
+  FlaskConical,
+  Crown
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -18,6 +20,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { usePlan, PremiumFeature } from "@/hooks/usePlan";
+import { UpgradeModal } from "@/components/plan/UpgradeModal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import {
   Sidebar,
@@ -32,7 +41,15 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const allMenuItems = [
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: string[];
+  premiumFeature?: PremiumFeature;
+}
+
+const allMenuItems: MenuItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "doctor", "nurse", "lab_scientist"] },
   { title: "Patients", url: "/patients", icon: Users, roles: ["admin", "doctor", "nurse", "receptionist"] },
   { title: "Appointments", url: "/appointments", icon: Calendar, roles: ["admin", "receptionist"] },
@@ -40,8 +57,8 @@ const allMenuItems = [
   { title: "Triage", url: "/appointments", icon: Calendar, roles: ["nurse"] },
   { title: "Lab Workspace", url: "/lab-workspace", icon: FlaskConical, roles: ["admin", "lab_scientist"] },
   { title: "Staff", url: "/staff", icon: Stethoscope, roles: ["admin"] },
-  { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "pharmacist"] },
-  { title: "Finance", url: "/finance", icon: DollarSign, roles: ["admin"] },
+  { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "pharmacist"], premiumFeature: "advanced_inventory" },
+  { title: "Finance", url: "/finance", icon: DollarSign, roles: ["admin"], premiumFeature: "finance" },
   { title: "Pharmacy", url: "/finance", icon: Pill, roles: ["pharmacist"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["admin"] },
 ];
@@ -52,6 +69,9 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const { isInstallable, installApp } = usePWAInstall();
+  const { isPremium, isAdmin, hasFeatureAccess } = usePlan();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [blockedFeature, setBlockedFeature] = useState<string>("");
   const currentPath = location.pathname;
 
   // Filter menu items based on user role
@@ -61,6 +81,17 @@ export function AppSidebar() {
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handlePremiumClick = (item: MenuItem, e: React.MouseEvent) => {
+    if (item.premiumFeature && !hasFeatureAccess(item.premiumFeature)) {
+      e.preventDefault();
+      if (isAdmin) {
+        setBlockedFeature(item.title);
+        setShowUpgradeModal(true);
+      }
+      // Non-admins can still see the menu item but will get blocked at the page level
+    }
   };
 
   // Get user initials for avatar
@@ -82,6 +113,43 @@ export function AppSidebar() {
     return user?.email?.split("@")[0] || "User";
   };
 
+  const renderMenuItem = (item: MenuItem) => {
+    const isPremiumLocked = item.premiumFeature && !hasFeatureAccess(item.premiumFeature);
+
+    const menuContent = (
+      <NavLink
+        to={item.url}
+        end
+        className={`hover:bg-muted/50 ${isPremiumLocked ? "opacity-60" : ""}`}
+        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+        onClick={(e) => handlePremiumClick(item, e)}
+      >
+        <item.icon className="h-4 w-4" />
+        {state === "expanded" && (
+          <span className="flex items-center gap-2">
+            {item.title}
+            {isPremiumLocked && <Crown className="h-3 w-3 text-amber-500" />}
+          </span>
+        )}
+      </NavLink>
+    );
+
+    if (isPremiumLocked && !isAdmin) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {menuContent}
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Premium feature — contact Admin</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuContent;
+  };
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -100,15 +168,7 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {state === "expanded" && <span>{item.title}</span>}
-                    </NavLink>
+                    {renderMenuItem(item)}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -116,6 +176,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        reason="premium_feature"
+        featureName={blockedFeature}
+      />
 
       {/* Footer with User Profile */}
       <SidebarFooter className="p-4 border-t">
