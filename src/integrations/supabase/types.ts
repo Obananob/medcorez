@@ -527,6 +527,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          plan: string
           support_email: string | null
           timezone: string | null
         }
@@ -538,6 +539,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          plan?: string
           support_email?: string | null
           timezone?: string | null
         }
@@ -549,6 +551,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          plan?: string
           support_email?: string | null
           timezone?: string | null
         }
