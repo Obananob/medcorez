@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { usePlan } from "@/hooks/usePlan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +17,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Building, Globe, Save, Loader2, Camera, ImageIcon, Moon, Sun } from "lucide-react";
+import { 
+  Settings as SettingsIcon, 
+  Building, 
+  Globe, 
+  Save, 
+  Loader2, 
+  Camera, 
+  ImageIcon, 
+  Moon, 
+  Sun,
+  Crown,
+  Users,
+  Sparkles,
+  Check,
+  BarChart3,
+  Wallet,
+  Package
+} from "lucide-react";
 
 const COUNTRIES = [
   { code: "US", name: "United States", currency: "$" },
@@ -47,6 +67,7 @@ const TIMEZONES = [
 const Settings = () => {
   const { profile } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { plan, isPremium, isFreemium, patientCount, patientLimit, remainingPatients, isLoading: planLoading } = usePlan();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -353,6 +374,117 @@ const Settings = () => {
                   <span className="font-medium">Currency:</span> {formData.currency_symbol} (based on selected country)
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Subscription & Plan */}
+          <Card className={isPremium ? "border-amber-500/50" : ""}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className={`h-5 w-5 ${isPremium ? "text-amber-500" : "text-muted-foreground"}`} />
+                  Subscription & Plan
+                </CardTitle>
+                <Badge 
+                  variant={isPremium ? "default" : "secondary"}
+                  className={isPremium ? "bg-gradient-to-r from-amber-500 to-amber-600" : ""}
+                >
+                  {isPremium ? "Premium" : "Free Plan"}
+                </Badge>
+              </div>
+              <CardDescription>
+                Manage your subscription and view usage
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Plan Status */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-foreground">Patient Records</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isPremium 
+                          ? "Unlimited patients" 
+                          : `${patientCount} of ${patientLimit} used`}
+                      </p>
+                    </div>
+                  </div>
+                  {isFreemium && (
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {remainingPatients} remaining
+                    </span>
+                  )}
+                </div>
+
+                {isFreemium && (
+                  <Progress 
+                    value={(patientCount / patientLimit) * 100} 
+                    className="h-2"
+                  />
+                )}
+              </div>
+
+              {/* Premium Features List */}
+              {isFreemium && (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Upgrade to Premium to unlock:
+                  </p>
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span className="text-sm">Unlimited patient records</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      <span className="text-sm">Analytics dashboard</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+                      <Wallet className="h-4 w-4 text-primary" />
+                      <span className="text-sm">Finance & billing management</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+                      <Package className="h-4 w-4 text-primary" />
+                      <span className="text-sm">Advanced inventory tracking</span>
+                    </div>
+                  </div>
+
+                  <Button className="w-full gap-2 mt-4">
+                    <Sparkles className="h-4 w-4" />
+                    Upgrade to Premium
+                  </Button>
+                </div>
+              )}
+
+              {/* Premium Status */}
+              {isPremium && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <Check className="h-4 w-4" />
+                    <span>All premium features unlocked</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="h-3 w-3" />
+                      Unlimited patients
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="h-3 w-3" />
+                      Analytics dashboard
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="h-3 w-3" />
+                      Finance management
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Check className="h-3 w-3" />
+                      Advanced inventory
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
