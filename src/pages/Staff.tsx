@@ -47,7 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check, Download } from "lucide-react";
+import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check, Download, KeyRound } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { generateLoginSlip } from "@/utils/generateLoginSlip";
 import { useAuth } from "@/contexts/AuthContext";
