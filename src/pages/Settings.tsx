@@ -83,6 +83,7 @@ const Settings = () => {
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
