@@ -608,6 +608,12 @@ const Staff = () => {
                             <Pencil className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
+                          {staff.user_id && (
+                            <DropdownMenuItem onClick={() => handleResetPassword(staff)}>
+                              <KeyRound className="h-4 w-4 mr-2" />
+                              Reset Password
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem 
                             onClick={() => setDeleteStaff(staff)}
                             className="text-destructive"
