@@ -213,6 +213,47 @@ const Staff = () => {
     },
   });
 
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const { data, error } = await supabase.functions.invoke("reset-password", {
+        body: { user_id: userId, new_password: newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      setNewPasswordVisible(true);
+      toast.success("Password reset successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to reset password: " + error.message);
+    },
+  });
+
+  const handleResetPassword = (staff: StaffMember) => {
+    const newPass = generatePassword();
+    setResetPasswordStaff(staff);
+    setGeneratedNewPassword(newPass);
+    setNewPasswordVisible(false);
+    setCopiedNewPassword(false);
+    setIsResetPasswordDialogOpen(true);
+  };
+
+  const confirmResetPassword = () => {
+    if (resetPasswordStaff?.user_id) {
+      resetPasswordMutation.mutate({ userId: resetPasswordStaff.user_id, newPassword: generatedNewPassword });
+    }
+  };
+
+  const copyNewPassword = async () => {
+    await navigator.clipboard.writeText(generatedNewPassword);
+    setCopiedNewPassword(true);
+    toast.success("Password copied to clipboard");
+    setTimeout(() => setCopiedNewPassword(false), 2000);
+  };
+
   // Delete staff mutation
   const deleteStaffMutation = useMutation({
     mutationFn: async (id: string) => {
