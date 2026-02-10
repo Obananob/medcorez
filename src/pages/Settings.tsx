@@ -21,6 +21,16 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Settings as SettingsIcon, 
   Building, 
@@ -37,8 +47,10 @@ import {
   Check,
   BarChart3,
   Wallet,
-  Package
+  Package,
+  AlertTriangle
 } from "lucide-react";
+import { invalidatePlanCache } from "@/hooks/usePlan";
 
 const COUNTRIES = [
   { code: "US", name: "United States", currency: "$" },
@@ -84,6 +96,29 @@ const Settings = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
+  const [isDowngrading, setIsDowngrading] = useState(false);
+
+  const handleDowngrade = async () => {
+    if (!profile?.organization_id) return;
+    setIsDowngrading(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ plan: "freemium" })
+        .eq("id", profile.organization_id);
+      if (error) throw error;
+      invalidatePlanCache();
+      queryClient.invalidateQueries({ queryKey: ["organization-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-count"] });
+      setShowDowngradeDialog(false);
+      toast.success("Downgraded to Free plan. Premium features are now restricted.");
+    } catch (err: any) {
+      toast.error("Downgrade failed: " + err.message);
+    } finally {
+      setIsDowngrading(false);
+    }
+  };
 
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
@@ -485,6 +520,15 @@ const Settings = () => {
                       Advanced inventory
                     </div>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => setShowDowngradeDialog(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Downgrade to Free Plan
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -551,6 +595,41 @@ const Settings = () => {
         reason="premium_feature"
         featureName="Premium Plan"
       />
+
+      <AlertDialog open={showDowngradeDialog} onOpenChange={setShowDowngradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Downgrade to Free Plan?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>You will lose access to the following features:</p>
+              <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                <li>Patient records beyond 50 will be hidden (not deleted)</li>
+                <li>Analytics dashboard</li>
+                <li>Finance & billing management</li>
+                <li>Advanced inventory tracking</li>
+              </ul>
+              <p className="mt-3 font-medium">Your data will be preserved and restored if you upgrade again.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDowngrading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDowngrade}
+              disabled={isDowngrading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDowngrading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Downgrading...</>
+              ) : (
+                "Confirm Downgrade"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
