@@ -595,6 +595,41 @@ const Settings = () => {
         reason="premium_feature"
         featureName="Premium Plan"
       />
+
+      <AlertDialog open={showDowngradeDialog} onOpenChange={setShowDowngradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Downgrade to Free Plan?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>You will lose access to the following features:</p>
+              <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                <li>Patient records beyond 50 will be hidden (not deleted)</li>
+                <li>Analytics dashboard</li>
+                <li>Finance & billing management</li>
+                <li>Advanced inventory tracking</li>
+              </ul>
+              <p className="mt-3 font-medium">Your data will be preserved and restored if you upgrade again.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDowngrading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDowngrade}
+              disabled={isDowngrading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDowngrading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Downgrading...</>
+              ) : (
+                "Confirm Downgrade"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
