@@ -544,6 +544,13 @@ const Settings = () => {
             )}
           </Button>
         </div>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        reason="premium_feature"
+        featureName="Premium Plan"
+      />
     </div>
   );
 };
