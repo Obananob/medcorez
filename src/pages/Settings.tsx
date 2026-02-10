@@ -21,6 +21,16 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Settings as SettingsIcon, 
   Building, 
@@ -37,8 +47,10 @@ import {
   Check,
   BarChart3,
   Wallet,
-  Package
+  Package,
+  AlertTriangle
 } from "lucide-react";
+import { invalidatePlanCache } from "@/hooks/usePlan";
 
 const COUNTRIES = [
   { code: "US", name: "United States", currency: "$" },
