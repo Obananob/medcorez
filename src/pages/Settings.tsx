@@ -451,7 +451,7 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full gap-2 mt-4">
+                  <Button className="w-full gap-2 mt-4" onClick={() => setShowUpgradeModal(true)}>
                     <Sparkles className="h-4 w-4" />
                     Upgrade to Premium
                   </Button>
