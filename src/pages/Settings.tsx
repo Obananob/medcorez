@@ -520,6 +520,15 @@ const Settings = () => {
                       Advanced inventory
                     </div>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => setShowDowngradeDialog(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Downgrade to Free Plan
+                  </Button>
                 </div>
               )}
             </CardContent>
