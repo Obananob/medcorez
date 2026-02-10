@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePlan } from "@/hooks/usePlan";
+import { UpgradeModal } from "@/components/plan/UpgradeModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,7 @@ const Settings = () => {
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
@@ -451,7 +453,7 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full gap-2 mt-4">
+                  <Button className="w-full gap-2 mt-4" onClick={() => setShowUpgradeModal(true)}>
                     <Sparkles className="h-4 w-4" />
                     Upgrade to Premium
                   </Button>
@@ -542,6 +544,13 @@ const Settings = () => {
             )}
           </Button>
         </div>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        reason="premium_feature"
+        featureName="Premium Plan"
+      />
     </div>
   );
 };
