@@ -47,7 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check, Download } from "lucide-react";
+import { Plus, Search, UserPlus, MoreHorizontal, Pencil, Trash2, Copy, Check, Download, KeyRound } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { generateLoginSlip } from "@/utils/generateLoginSlip";
 import { useAuth } from "@/contexts/AuthContext";
@@ -105,6 +105,11 @@ const Staff = () => {
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [deleteStaff, setDeleteStaff] = useState<StaffMember | null>(null);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [resetPasswordStaff, setResetPasswordStaff] = useState<StaffMember | null>(null);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [generatedNewPassword, setGeneratedNewPassword] = useState("");
+  const [copiedNewPassword, setCopiedNewPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
   const [formData, setFormData] = useState({
@@ -207,6 +212,47 @@ const Staff = () => {
       toast.error("Failed to update staff: " + error.message);
     },
   });
+
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const { data, error } = await supabase.functions.invoke("reset-password", {
+        body: { user_id: userId, new_password: newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      setNewPasswordVisible(true);
+      toast.success("Password reset successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to reset password: " + error.message);
+    },
+  });
+
+  const handleResetPassword = (staff: StaffMember) => {
+    const newPass = generatePassword();
+    setResetPasswordStaff(staff);
+    setGeneratedNewPassword(newPass);
+    setNewPasswordVisible(false);
+    setCopiedNewPassword(false);
+    setIsResetPasswordDialogOpen(true);
+  };
+
+  const confirmResetPassword = () => {
+    if (resetPasswordStaff?.user_id) {
+      resetPasswordMutation.mutate({ userId: resetPasswordStaff.user_id, newPassword: generatedNewPassword });
+    }
+  };
+
+  const copyNewPassword = async () => {
+    await navigator.clipboard.writeText(generatedNewPassword);
+    setCopiedNewPassword(true);
+    toast.success("Password copied to clipboard");
+    setTimeout(() => setCopiedNewPassword(false), 2000);
+  };
 
   // Delete staff mutation
   const deleteStaffMutation = useMutation({
@@ -562,6 +608,12 @@ const Staff = () => {
                             <Pencil className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
+                          {staff.user_id && (
+                            <DropdownMenuItem onClick={() => handleResetPassword(staff)}>
+                              <KeyRound className="h-4 w-4 mr-2" />
+                              Reset Password
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem 
                             onClick={() => setDeleteStaff(staff)}
                             className="text-destructive"
@@ -657,6 +709,76 @@ const Staff = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetPasswordDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsResetPasswordDialogOpen(false);
+          setResetPasswordStaff(null);
+          setNewPasswordVisible(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              {newPasswordVisible
+                ? `New password for ${resetPasswordStaff?.first_name} ${resetPasswordStaff?.last_name}:`
+                : `Generate a new password for ${resetPasswordStaff?.first_name} ${resetPasswordStaff?.last_name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          {newPasswordVisible ? (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">New Password</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 p-3 bg-muted rounded-md font-mono text-sm">
+                    {generatedNewPassword}
+                  </div>
+                  <Button variant="outline" size="icon" onClick={copyNewPassword}>
+                    {copiedNewPassword ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Share this password securely with the staff member.</p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (resetPasswordStaff) {
+                      generateLoginSlip({
+                        hospitalName: organization?.name || "Hospital",
+                        staffName: `${resetPasswordStaff.first_name} ${resetPasswordStaff.last_name}`,
+                        role: ROLES.find(r => r.value === resetPasswordStaff.role)?.label || resetPasswordStaff.role,
+                        email: resetPasswordStaff.email || "",
+                        temporaryPassword: generatedNewPassword,
+                      });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Slip
+                </Button>
+                <Button onClick={() => { setIsResetPasswordDialogOpen(false); setResetPasswordStaff(null); setNewPasswordVisible(false); }}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setIsResetPasswordDialogOpen(false); setResetPasswordStaff(null); }}>
+                Cancel
+              </Button>
+              <Button onClick={confirmResetPassword} disabled={resetPasswordMutation.isPending}>
+                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
