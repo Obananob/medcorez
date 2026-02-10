@@ -105,6 +105,11 @@ const Staff = () => {
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [deleteStaff, setDeleteStaff] = useState<StaffMember | null>(null);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [resetPasswordStaff, setResetPasswordStaff] = useState<StaffMember | null>(null);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [generatedNewPassword, setGeneratedNewPassword] = useState("");
+  const [copiedNewPassword, setCopiedNewPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
   const [formData, setFormData] = useState({
