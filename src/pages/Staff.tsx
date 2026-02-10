@@ -712,6 +712,76 @@ const Staff = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetPasswordDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsResetPasswordDialogOpen(false);
+          setResetPasswordStaff(null);
+          setNewPasswordVisible(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              {newPasswordVisible
+                ? `New password for ${resetPasswordStaff?.first_name} ${resetPasswordStaff?.last_name}:`
+                : `Generate a new password for ${resetPasswordStaff?.first_name} ${resetPasswordStaff?.last_name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          {newPasswordVisible ? (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">New Password</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 p-3 bg-muted rounded-md font-mono text-sm">
+                    {generatedNewPassword}
+                  </div>
+                  <Button variant="outline" size="icon" onClick={copyNewPassword}>
+                    {copiedNewPassword ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Share this password securely with the staff member.</p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (resetPasswordStaff) {
+                      generateLoginSlip({
+                        hospitalName: organization?.name || "Hospital",
+                        staffName: `${resetPasswordStaff.first_name} ${resetPasswordStaff.last_name}`,
+                        role: ROLES.find(r => r.value === resetPasswordStaff.role)?.label || resetPasswordStaff.role,
+                        email: resetPasswordStaff.email || "",
+                        temporaryPassword: generatedNewPassword,
+                      });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Slip
+                </Button>
+                <Button onClick={() => { setIsResetPasswordDialogOpen(false); setResetPasswordStaff(null); setNewPasswordVisible(false); }}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setIsResetPasswordDialogOpen(false); setResetPasswordStaff(null); }}>
+                Cancel
+              </Button>
+              <Button onClick={confirmResetPassword} disabled={resetPasswordMutation.isPending}>
+                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteStaff} onOpenChange={() => setDeleteStaff(null)}>
         <AlertDialogContent>
