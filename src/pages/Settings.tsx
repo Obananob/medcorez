@@ -95,7 +95,8 @@ const Settings = () => {
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
+  const [isDowngrading, setIsDowngrading] = useState(false);
 
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
