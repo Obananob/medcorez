@@ -95,8 +95,30 @@ const Settings = () => {
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
   const [isDowngrading, setIsDowngrading] = useState(false);
+
+  const handleDowngrade = async () => {
+    if (!profile?.organization_id) return;
+    setIsDowngrading(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ plan: "freemium" })
+        .eq("id", profile.organization_id);
+      if (error) throw error;
+      invalidatePlanCache();
+      queryClient.invalidateQueries({ queryKey: ["organization-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-count"] });
+      setShowDowngradeDialog(false);
+      toast.success("Downgraded to Free plan. Premium features are now restricted.");
+    } catch (err: any) {
+      toast.error("Downgrade failed: " + err.message);
+    } finally {
+      setIsDowngrading(false);
+    }
+  };
 
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
